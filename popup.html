@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <style>
-      button {
-        height: 30px;
-        width: 30px;
-        outline: none;
-      }
-    </style>
+    <link href="popup.css" rel="stylesheet" />
   </head>
   <body>
-    <button id="changeColor"></button>
+    <div id="root">
+      <form class="pure-form">
+        <fieldset>
+            <legend>A compact inline form</legend>
+            <input id="input-workspace" type="text" placeholder="Workspace name">
+            <button id="btn-create-workspace">Create</button>
+        </fieldset>
+      </form>
+    </div>
+    <script src="popup.js"></script>
   </body>
 </html>

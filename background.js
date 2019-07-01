@@ -1,5 +1,6 @@
 function init() {
   listenPopupMsgs();
+  listenNewtabMsgs();
   listenTabEvents();
   listenStorageEvents();
 
@@ -57,6 +58,24 @@ function listenPopupMsgs() {
         break;
     }
   });
+}
+
+function listenNewtabMsgs() {
+  chrome.extension.onMessage.addListener((request, sender, sendResponse) => {
+    switch (request.type) {
+      case 'get_workspaces':
+        console.log('get workspaces');
+        getWorkspacesList(listWorkspaces => {
+          chrome.extension.sendMessage({
+            type: 'got_workspaces',
+            payload: listWorkspaces,
+          });
+        });
+        break;
+      default:
+        break;
+    }
+  })
 }
 
 function createWorkspace(name) {

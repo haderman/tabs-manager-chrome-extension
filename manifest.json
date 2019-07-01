@@ -2,13 +2,22 @@
   "name": "Tabs Manager",
   "version": "1.0",
   "description": "Manage your tabs with workspaces",
-  "permissions": ["sessions", "tabs", "storage"],
+  "permissions": [
+    "sessions",
+    "tabs",
+    "storage",
+    "declarativeContent",
+    "activeTab"
+  ],
   "background": {
     "scripts": ["background.js"],
     "persistent": false
   },
   "browser_action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup/popup.html"
+  },
+  "chrome_url_overrides" : {
+    "newtab": "newtab/newtab.html"
   },
   "manifest_version": 2
 }

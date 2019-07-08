@@ -72,10 +72,21 @@ function listenNewtabMsgs() {
           });
         });
         break;
+      case 'open_workspace':
+        openWorkspace(request.payload);
+        break;
       default:
         break;
     }
   })
+}
+
+function openWorkspace(workspace) {
+  getWorkspace(workspace, list => {
+    const urls = map(tab => tab.url)(list[workspace].tabs);
+    console.log(urls);
+    chrome.windows.create({ url: urls });
+  });
 }
 
 function createWorkspace(name) {

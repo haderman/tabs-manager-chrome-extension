@@ -21,16 +21,22 @@ function gotWorkspaces(workspacesList) {
 }
 
 function renderWorkspacesList(workspacesList) {
-  const button = ws => ({ element: 'button', textContent: ws });
+  const button = ws => ({ element: 'button', textContent: ws, onClick: openWorkspace(ws) });
   return workspacesList.map(button);
-} 
+}
+
+function openWorkspace(ws) {
+  return () => {
+    chrome.extension.sendMessage({ type: 'open_workspace', payload: ws });
+  };
+}
 
 // HELPERS
 
 
 function createElement(parent, node) {
   const $element = document.createElement(node.element);
-  const { className, children, textContent } = node;
+  const { className, children, textContent, onClick } = node;
   
   if (className !== undefined) {
     $element.className = node.className;
@@ -38,6 +44,10 @@ function createElement(parent, node) {
 
   if (textContent !== undefined) {
     $element.textContent = textContent;  
+  }
+
+  if (onClick !== undefined) {
+    $element.onclick = onClick;
   }
 
   if (children !== undefined) {
@@ -48,17 +58,3 @@ function createElement(parent, node) {
 
   parent.appendChild($element);
 }
-
-function createText(parent, text) {
-  var $text = document.createTextNode(text);
-  parent.appendChild($element);
-}
-
-
-// {
-//   element: ,
-//   onClick: ,
-//   children: [{
-//     element: '',
-//   }]
-// }

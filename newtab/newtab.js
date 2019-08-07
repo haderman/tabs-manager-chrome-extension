@@ -1,23 +1,26 @@
 window.onload = function() {
-  chrome.extension.sendMessage({ type: 'get_workspaces' });
+  chrome.extension.sendMessage({ type: 'get_model' });
 
   chrome.extension.onMessage.addListener((request, sender, sendResponse) => {
     switch (request.type) {
-      case 'got_workspaces':
-        gotWorkspaces(request.payload);
-        break;
+      case 'MODEL_UPDATED':
+        render(request.payload);
       default:
         break;
     }
   });
 }
 
-function gotWorkspaces(workspacesList) {
-  const root = document.getElementById('root');
-  createElement(root,
-    { element: 'div', className: 'container', children:
-      renderWorkspacesList(workspacesList)
+
+function render(model) {
+  root({
+    element: 'div', className: 'container', children: renderWorkspacesList(model.workspaces)
   });
+}
+
+function root(children) {
+  const root = document.getElementById('root');
+  createElement(root, children)
 }
 
 function renderWorkspacesList(workspacesList) {
@@ -30,6 +33,8 @@ function openWorkspace(ws) {
     chrome.extension.sendMessage({ type: 'open_workspace', payload: ws });
   };
 }
+
+
 
 // HELPERS
 

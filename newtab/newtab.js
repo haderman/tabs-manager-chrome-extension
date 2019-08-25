@@ -1,26 +1,44 @@
-window.onload = function() {
-  chrome.extension.sendMessage({ type: 'get_model' });
+let currentWindow;
 
+function selectCurrentWindowModel(model, currentWindow) {
+  return { ...model, ...model.windows[currentWindow.id] }
+}
+
+window.onload = function onLoad() {
+  chrome.windows.getCurrent(window => {
+    currentWindow = window;
+    init();
+  });
+};
+
+function init() {
   chrome.extension.onMessage.addListener((request, sender, sendResponse) => {
     switch (request.type) {
       case 'MODEL_UPDATED':
-        render(request.payload);
+        render(selectCurrentWindowModel(request.payload, currentWindow));
       default:
         break;
     }
   });
+  
+  sendMessage({ type: 'get_model' });
 }
-
 
 function render(model) {
   root({
-    element: 'div', className: 'container', children: renderWorkspacesList(model.workspaces)
+    element: 'div', className: 'container', children: renderContent(model)
   });
 }
 
 function root(children) {
   const root = document.getElementById('root');
   createElement(root, children)
+}
+
+function renderContent(model) {
+  return model.workspace === undefined
+    ? renderWorkspacesList(model.workspaces)
+    : [{ element: 'span', textContent: model.workspace }];
 }
 
 function renderWorkspacesList(workspacesList) {
@@ -30,7 +48,7 @@ function renderWorkspacesList(workspacesList) {
 
 function openWorkspace(ws) {
   return () => {
-    chrome.extension.sendMessage({ type: 'open_workspace', payload: ws });
+    sendMessage({ type: 'request_to_open_workspace', payload: ws });
   };
 }
 
@@ -62,4 +80,8 @@ function createElement(parent, node) {
   }
 
   parent.appendChild($element);
+}
+
+function sendMessage(msg) {
+  chrome.extension.sendMessage({ ...msg, window: currentWindow });
 }

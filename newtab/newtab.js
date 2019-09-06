@@ -11,17 +11,22 @@ window.onload = function onLoad() {
   });
 };
 
+
 function init() {
   chrome.extension.onMessage.addListener((request, sender, sendResponse) => {
     switch (request.type) {
       case 'MODEL_UPDATED':
+        console.log('MODEL_UPDATED');
         render(selectCurrentWindowModel(request.payload, currentWindow));
       default:
         break;
     }
   });
   
-  sendMessage({ type: 'get_model' });
+  console.log('GET MODEL');
+  setTimeout(() => {
+    sendMessage({ type: 'get_model' });
+  }, 100);
 }
 
 function render(model) {
@@ -32,6 +37,9 @@ function render(model) {
 
 function root(children) {
   const root = document.getElementById('root');
+  while (root.firstChild) {
+    root.removeChild(root.firstChild);
+  }
   createElement(root, children)
 }
 
@@ -83,5 +91,5 @@ function createElement(parent, node) {
 }
 
 function sendMessage(msg) {
-  chrome.extension.sendMessage({ ...msg, window: currentWindow });
+  chrome.runtime.sendMessage({ ...msg, window: currentWindow });
 }

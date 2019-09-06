@@ -1,8 +1,8 @@
 // Msgs
 const NONE = 'NONE';
 const STORAGE_UPDATED = 'STORAGE_UPDATED';
-const TAB_CREATED = 'TAB_CREATED';
 const TAB_UPDATED = 'TAB_UPDATED';
+const TAB_REMOVED = 'TAB_REMOVED';
 const EXTERNAL_MESSAGE = 'EXTERNAL_MESSAGE';
 const OPEN_WORKSPACE = 'OPEN_WORKSPACE';
 const WORKSPACE_OPENED = 'WORKSPACE_OPENED';
@@ -23,57 +23,71 @@ async function init() {
   return model;
 };
 
-function update(msg, model) {
+function update(msg, model, setModel) {
   const handlers = {
     NEW_WINDOW_CREATED: (window) => {
-      return [
-        {
-          ...model,
-          windows: {
-            ...model.windows,
-            [window.id]: {
-              workspace: undefined
-            }
+      setModel({
+        ...model,
+        windows: {
+          ...model.windows,
+          [window.id]: {
+            workspace: undefined
           }
-        },
-        NONE
-      ]
+        }
+      });
     },
     STORAGE_UPDATED: (changes, namespace) => {
-      console.dir(changes);
+      for (var key in changes) {
+        var storageChange = changes[key];
+        console.log('Storage key "%s" in namespace "%s" changed. ' +
+                    'Old value was "%s", new value is "%s".',
+                    key,
+                    namespace,
+                    storageChange.oldValue,
+                    storageChange.newValue);
+      }
       return [model, NONE];
-    },
-    TAB_CREATED: (args) => {
-      console.log(args);
-      return [{ ...model }, NONE];
     },
     TAB_UPDATED: (tabId, changeInfo, tabInfo) => {
       const { status } = changeInfo;
-      if (status !== 'complete') return [model, NONE];
+      if (status !== 'complete') return;
 
-      console.log(tabInfo.title);
-      console.log(tabInfo.url);
-      console.log(tabInfo.windowId);
-      return [model, NONE];
+      const { windows } = model;
+      const { windowId } = tabInfo;
+      const workspaceName = windowId in windows && windows[windowId].workspace;
+      
+      if (workspaceName) {
+        chrome.tabs.query({ windowId }, tabs => {
+          const pickTitleAndUrl = map(pick(['title', 'url']));
+          
+          const newWorkspaces = model.workspaces.includes(workspaceName)
+            ? model.workspaces
+            : [...model.workspaces, workspaceName];
+
+          const objToSave = {
+            [workspaceName]: pickTitleAndUrl(tabs),
+            workspaces_list: newWorkspaces
+          };
+          
+          chrome.storage.sync.set(objToSave, () => {
+            setModel({
+              ...model,
+              workspaces: newWorkspaces,
+              windows: {
+                ...model.windows,
+                [windowId]: {
+                  workspace: workspaceName
+                }
+              }
+            })
+          });
+        });
+      }
     },
     OPEN_WORKSPACE: ([name, content]) => {
-      console.log('OPEN_WORKSPACE: ', content);
       const url = content.map(prop('url'));
-      return [
-        { ...model },
-        [
-          new Promise((resolve, reject) => {
-            chrome.windows.create({ url }, newWindow => {
-              resolve([name, newWindow]);
-            });
-          }),
-          WORKSPACE_OPENED
-        ]
-      ]
-    },
-    WORKSPACE_OPENED: ([name, window]) => {
-      return [
-        {
+      chrome.windows.create({ url }, newWindow => {
+        setModel({
           ...model,
           windows: {
             ...model.windows,
@@ -81,75 +95,77 @@ function update(msg, model) {
               workspace: name
             }
           }
-        },
-        NONE
-      ]
-    },
-    SAVE_WORKSPACE: ([name, tabs, window]) => {
-      const pickTitleAndUrl = map(pick(['title', 'url']));
-      const newWorkspaces = [...model.workspaces, name];
-      const objToSave = {
-        [name]: pickTitleAndUrl(tabs),
-        workspaces_list: newWorkspaces,
-      };
-      
-      return [
-        { ...model },
-        [
-          new Promise((resolve, reject) => {
-            chrome.storage.sync.set(objToSave, () => {
-              resolve([name, newWorkspaces, window]);
-            });
-          }),
-          WORKSPACE_SAVED
-        ]
-      ];
-    },
-    WORKSPACE_SAVED: ([name, newWorkspaces, window]) => {
-      return [
-        {
-          ...model,
-          workspaces: newWorkspaces,
-          windows: {
-            ...model.windows,
-            [window.id]: {
-              workspace: name
-            }
-          }
-        },
-        NONE
-      ]
+        });
+      });
     },
     // Messages from popup or newtab
     EXTERNAL_MESSAGE: (request, sender, sendResponse) => {
+      const workspaceName = request.payload;
+      const window = request.window;
+
       switch (request.type) {
         case 'get_model':
-          return [{ ...model }, NONE];
+          setModel({ ...model });
+          break;
         case 'request_to_create_a_workspace':
-          return [
-            { ...model },
-            [
-              new Promise((resolve, reject) => {
-                chrome.tabs.query({ currentWindow: true }, tabs => {
-                  resolve([request.payload, tabs, request.window]);
-                });
-              }),
-              SAVE_WORKSPACE
-            ]
-          ];
+          chrome.tabs.query({ currentWindow: true }, tabs => {
+            const pickTitleAndUrl = map(pick(['title', 'url']));
+            const newWorkspaces = (
+              model.workspaces.includes(workspaceName)
+              ? model.workspaces
+              : [...model.workspaces, workspaceName]
+            );
+            const objToSave = {
+              [workspaceName]: pickTitleAndUrl(tabs),
+              workspaces_list: newWorkspaces,
+            };
+            chrome.storage.sync.set(objToSave, () => {
+              setModel({
+                ...model,
+                workspaces: newWorkspaces,
+                windows: {
+                  ...model.windows,
+                  [window.id]: {
+                    workspace: workspaceName
+                  }
+                }
+              })
+            });
+          });
+          break;
         case 'request_to_open_workspace':
-          const workspaceName = request.payload;
-          return [
-            { ...model, currentWorkspace: workspaceName },
-            [
-              new Promise((resolve, reject) => {
-                chrome.storage.sync.get(workspaceName, workspaceContent => {
-                  resolve([workspaceName, workspaceContent[workspaceName]]);
-                })
-              }),
-              OPEN_WORKSPACE
-            ]
-          ];
+          chrome.storage.sync.get(workspaceName, workspaceContent => {
+            chrome.tabs.query({ windowId: window.id }, tabs => {
+              workspaceContent[workspaceName].map(prop('url')).forEach(url => {
+                chrome.tabs.create({ windowId: window.id, url })
+              })
+              setModel({
+                ...model,
+                windows: {
+                  ...model.windows,
+                  [window.id]: {
+                    workspace: workspaceName
+                  }
+                }
+              });
+              chrome.tabs.remove(map(prop('id'))(tabs), () => {
+                const content = workspaceContent[workspaceName];
+              });
+            })
+
+            // chrome.windows.create({ url }, newWindow => {
+            //   setModel({
+            //     ...model,
+            //     windows: {
+            //       ...model.windows,
+            //       [newWindow.id]: {
+            //         workspace: workspaceName
+            //       }
+            //     }
+            //   });
+            // });
+          })
+          break;
         default:
           return [model, NONE];
       }
@@ -164,8 +180,8 @@ function subscriptions(callback) {
   chrome.storage.onChanged.addListener(callback(STORAGE_UPDATED));
   
   // tabs events subscriptions
-  chrome.tabs.onCreated.addListener(callback(TAB_CREATED));
   chrome.tabs.onUpdated.addListener(callback(TAB_UPDATED));
+  chrome.tabs.onRemoved.addListener(callback(TAB_REMOVED));
 
   // events from other scripts (popup | newtab)
   chrome.extension.onMessage.addListener(callback(EXTERNAL_MESSAGE));
@@ -174,9 +190,8 @@ function subscriptions(callback) {
   chrome.windows.onCreated.addListener(callback(NEW_WINDOW_CREATED));
 }
 
-chrome.runtime.onInstalled.addListener(() => {
-  main(init, update, subscriptions);
-});
+main(init, update, subscriptions);
+
 
 
 // HELPERS
@@ -184,9 +199,20 @@ chrome.runtime.onInstalled.addListener(() => {
 async function main(init, update, subscriptions) {
   let model = await init();
   
+  const setModel = msg => newModel => {
+    if (model !== newModel) {
+      model = newModel
+      chrome.extension.sendMessage({ type: 'MODEL_UPDATED', payload: model });
+      logModelUpdated(msg, newModel)
+    }
+  }
+
+  const callUpdate = msg => (...args) => {
+    update(msg, model, setModel(msg))(...args);
+  }
+
   const updateModel = (msg) => async (...args) => {
-    const [newModel, newMsg] = update(msg, model)(...args);
-    
+    const [newModel, newMsg] = update(msg, model, setModel)(...args);
     if (model !== newModel) {
       logModelUpdated(msg, newModel);
       chrome.extension.sendMessage({ type: 'MODEL_UPDATED', payload: newModel });
@@ -200,8 +226,8 @@ async function main(init, update, subscriptions) {
       updateModel(newMsg)();
     }
   }
-  
-  subscriptions(updateModel);
+
+  subscriptions(callUpdate);
 }
 
 function logModelUpdated(msg, newModel) {
@@ -256,7 +282,5 @@ function pick(keys) {
 }
 
 function prop(nameProp) {
-  return obj => {
-    return obj[nameProp];
-  };
+  return obj => obj[nameProp];
 }

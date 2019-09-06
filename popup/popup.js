@@ -29,35 +29,107 @@ function init() {
 
 function root(children) {
   const root = document.getElementById('root');
+  while (root.firstChild) {
+    root.removeChild(root.firstChild);
+  }
   createElement(root, children)
 }
 
 function render(model) {
   root({
-    element: 'div', className: 'container', children: renderContent(model.workspace)
+    element: 'div',
+    children: [{
+      element: 'section',
+      className: 'background-secondary',
+      children: [
+        model.workspace === undefined ? viewForm() : viewWorkspace(model)
+      ]
+    }, {
+      element: 'section',
+      children: [{
+        element: 'h3',
+        className: 'color-contrast',
+        textContent: 'YOUR WORKSPACES',
+      },
+        viewWorkspacesList(model.workspaces)
+      ]
+    }]
   });
 }
 
-function renderContent(currentWorkspace) {
-  return currentWorkspace === undefined
-    ? renderForm()
-    : [{ element: 'span', textContent: currentWorkspace }];
+function viewWorkspace(model) {
+  return {
+    element: 'h1',
+    className: 'color-alternate textAlign-center',
+    textContent: model.workspace,
+  };
 }
 
-function renderForm() {
-  return [{
-    element: 'form', children: [{
-      element: 'fieldset', children: [
-        { element: 'legend', textContent: 'A compact inline form' },
-        { element: 'input', onChange: (e) => { inputValue = e.target.value }},
-        { element: 'button', textContent: 'Save', onClick: handleClick }
-      ]
+function viewForm() {
+  return {
+    element: 'div',
+    className: 'grid grid-template-col-2 grid-col-gap-m',
+    children: [{
+      element: 'input',
+      className: classnames(
+        'background-secondary',
+        'color-contrast',
+        'borderBottomColor-contrast',
+        'fontSize-s',
+        'padding-s'
+      ),
+      onChange: (e) => { inputValue = e.target.value },
+    }, {
+      element: 'button',
+      className: classnames(
+        'background-alternate',
+        'color-contrast',
+        'fontSize-s',
+        'padding-s'
+      ),
+      textContent: 'Save',
+      onClick: () => sendMessage({ type: 'request_to_create_a_workspace', payload: inputValue }),
     }]
-  }]
+  };
 }
 
-function handleClick() {
-  sendMessage({ type: 'request_to_create_a_workspace', payload: inputValue });
+function viewWorkspacesList(workspacesList) {
+  const action = (text, func) => ({
+    element: 'button',
+    className: classnames(
+      'padding-xs',
+      'marginLeft-m',
+      'fontSize-xs',
+      'rounded',
+      'border-s',
+      'borderColor-alternate',
+      'color-alternate',
+      'background-hidden'
+    ),
+    textContent: text,
+    onClick: func,
+  });
+
+  return {
+    element: 'ul',
+    children: workspacesList.map(workspaceName => ({
+      element: 'li',
+      className: 'padding-m color-contrast fontSize-s hover',
+      children: [{
+        element: 'span',
+        className: 'fontSize-m',
+        textContent: workspaceName,
+      }, {
+        element: 'span',
+        className: 'marginLeft-xl show-in-hover',
+        children: [
+          action('Save', () => {}),
+          action('Open', () => sendMessage({ type: 'request_to_open_workspace', payload: workspaceName }))
+        ]
+      }
+    ]  
+    }))
+  };
 }
 
 
@@ -90,6 +162,10 @@ function createElement(parent, node) {
   }
 
   parent.appendChild($element);
+}
+
+function classnames(...args) {
+  return args.join(' ');
 }
 
 function sendMessage(msg) {

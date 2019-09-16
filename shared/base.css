@@ -76,7 +76,7 @@ ul {
 
 /* PALETTE COLORS */
 /* the same order (top -> bottom) than https://colorhunt.co/palette/2763 */
-.background-hidden { background-color: transparent; } 
+.background-transparent { background-color: transparent; } 
 .background-primary { background-color: #222831; }
 .background-secondary { background-color: #393e46; }
 .background-contrast { background-color: #eeeeee; }
@@ -128,6 +128,11 @@ ul {
 .marginLeft-m { margin-left: 10px; }
 .marginLeft-l { margin-left: 12px; }
 .marginLeft-xl { margin-left: 15px; }
+.marginBottom-xs { margin-bottom: 3px; }
+.marginBottom-s { margin-bottom: 8px; }
+.marginBottom-m { margin-bottom: 10px; }
+.marginBottom-l { margin-bottom: 12px; }
+.marginBottom-xl { margin-bottom: 15px; }
 
 /* GRID */
 .grid { display: grid; }
@@ -137,3 +142,7 @@ ul {
 .grid-col-gap-m { grid-column-gap: 10px; }
 .grid-col-gap-l { grid-column-gap: 12px; }
 .grid-col-gap-xl { grid-column-gap: 15px; }
+
+.inline {
+  display: inline-flex;
+}

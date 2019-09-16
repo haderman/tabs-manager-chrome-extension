@@ -104,7 +104,7 @@ function viewWorkspacesList(workspacesList) {
       'border-s',
       'borderColor-alternate',
       'color-alternate',
-      'background-hidden'
+      'background-transparent'
     ),
     textContent: text,
     onClick: func,

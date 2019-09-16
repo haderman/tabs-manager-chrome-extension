@@ -1,10 +1,11 @@
+const chromePromise = new ChromePromise();
+
 // Msgs
 const NONE = 'NONE';
 const STORAGE_UPDATED = 'STORAGE_UPDATED';
 const TAB_UPDATED = 'TAB_UPDATED';
 const TAB_REMOVED = 'TAB_REMOVED';
 const EXTERNAL_MESSAGE = 'EXTERNAL_MESSAGE';
-const OPEN_WORKSPACE = 'OPEN_WORKSPACE';
 const WORKSPACE_OPENED = 'WORKSPACE_OPENED';
 const NEW_WINDOW_CREATED = 'NEW_WINDOW_CREATED';
 const SAVE_WORKSPACE = 'SAVE_WORKSPACE';
@@ -12,12 +13,9 @@ const WORKSPACE_SAVED = 'WORKSPACE_SAVED';
 
 // return [model, msg]
 async function init() {
+  const workspaces = await chromePromise.storage.sync.get('workspaces_list');
   const model = {
-    workspaces: await new Promise((resolve, reject) => {
-      chrome.storage.sync.get('workspaces_list', workspaces => {
-        resolve(workspaces.workspaces_list);
-      });
-    }),
+    workspaces: workspaces.workspaces_list || [],
     windows: {},
   };
   return model;
@@ -55,51 +53,34 @@ function update(msg, model, setModel) {
       const { windows } = model;
       const { windowId } = tabInfo;
       const workspaceName = windowId in windows && windows[windowId].workspace;
-      
-      if (workspaceName) {
-        chrome.tabs.query({ windowId }, tabs => {
-          const pickTitleAndUrl = map(pick(['title', 'url']));
-          
-          const newWorkspaces = model.workspaces.includes(workspaceName)
-            ? model.workspaces
-            : [...model.workspaces, workspaceName];
 
-          const objToSave = {
-            [workspaceName]: pickTitleAndUrl(tabs),
-            workspaces_list: newWorkspaces
-          };
-          
-          chrome.storage.sync.set(objToSave, () => {
-            setModel({
-              ...model,
-              workspaces: newWorkspaces,
-              windows: {
-                ...model.windows,
-                [windowId]: {
-                  workspace: workspaceName
-                }
-              }
-            })
-          });
+      if (!workspaceName) return;
+
+      const newWorkspaces = model.workspaces.includes(workspaceName)
+        ? model.workspaces
+        : [...model.workspaces, workspaceName];
+
+      chromePromise.tabs.query({ windowId })
+        .then(logger('tabs'))
+        .then(map(pick(['title', 'url', 'favIconUrl'])))
+        .then(tabs => ({
+          [workspaceName]: tabs,
+          workspaces_list: newWorkspaces
+        }))
+        .then(chromePromise.storage.sync.set)
+        .then(() => {
+          pipe(
+            set(`windows.${window.id}.workspace`, workspaceName),
+            set('workspaces', newWorkspaces),
+            setModel
+          )(model)
+        })
+        .catch(err => {
+          console.warn('Error updading tabs in storage: ', err);
         });
-      }
-    },
-    OPEN_WORKSPACE: ([name, content]) => {
-      const url = content.map(prop('url'));
-      chrome.windows.create({ url }, newWindow => {
-        setModel({
-          ...model,
-          windows: {
-            ...model.windows,
-            [window.id]: {
-              workspace: name
-            }
-          }
-        });
-      });
     },
     // Messages from popup or newtab
-    EXTERNAL_MESSAGE: (request, sender, sendResponse) => {
+    EXTERNAL_MESSAGE: async (request, sender, sendResponse) => {
       const workspaceName = request.payload;
       const window = request.window;
 
@@ -108,63 +89,57 @@ function update(msg, model, setModel) {
           setModel({ ...model });
           break;
         case 'request_to_create_a_workspace':
-          chrome.tabs.query({ currentWindow: true }, tabs => {
-            const pickTitleAndUrl = map(pick(['title', 'url']));
-            const newWorkspaces = (
-              model.workspaces.includes(workspaceName)
-              ? model.workspaces
-              : [...model.workspaces, workspaceName]
-            );
-            const objToSave = {
-              [workspaceName]: pickTitleAndUrl(tabs),
-              workspaces_list: newWorkspaces,
-            };
-            chrome.storage.sync.set(objToSave, () => {
-              setModel({
-                ...model,
-                workspaces: newWorkspaces,
-                windows: {
-                  ...model.windows,
-                  [window.id]: {
-                    workspace: workspaceName
-                  }
-                }
-              })
+          chromePromise.tabs.query({ currentWindow: true })
+            .then(map(pick(['title', 'url'])))
+            .then(tabs => ({
+              [workspaceName]: tabs,
+              workspaces_list: model.workspaces.includes(workspaceName)
+                ? model.workspaces
+                : [...model.workspaces, workspaceName],
+            }))
+            .then(chromePromise.storage.sync.set)
+            .then(() => {
+              const newModel = set(`windows.${window.id}.workspace`, workspaceName)(model);
+              setModel(newModel);
+            })
+            .catch(err => {
+              console.warn('Error creating a workspace: ', err);
             });
-          });
           break;
         case 'request_to_open_workspace':
-          chrome.storage.sync.get(workspaceName, workspaceContent => {
-            chrome.tabs.query({ windowId: window.id }, tabs => {
-              workspaceContent[workspaceName].map(prop('url')).forEach(url => {
-                chrome.tabs.create({ windowId: window.id, url })
-              })
-              setModel({
-                ...model,
-                windows: {
-                  ...model.windows,
-                  [window.id]: {
-                    workspace: workspaceName
-                  }
-                }
-              });
-              chrome.tabs.remove(map(prop('id'))(tabs), () => {
-                const content = workspaceContent[workspaceName];
-              });
-            })
+          const currentWorkspaceName = model.windows[window.id]
+            ? model.windows[window.id].workspace
+            : 'last-sesion';
+          
+          const tabsToClose = await chromePromise.tabs.query({ windowId: window.id });
+        
+          const tabsToOpen = await 
+            chromePromise.storage.sync.get(workspaceName)
+            .then(prop(workspaceName))
+            .then(map(prop('url')))
+            .then(map(url => ({ windowId: window.id, url })))
+            .catch(err => {
+              console.warn('Error getting workspace data from storage: ', err);
+            });
+          
+          tabsToOpen.forEach(tab => chromePromise.tabs.create(tab));
+          chromePromise.tabs.remove(tabsToClose.map(prop('id')));
 
-            // chrome.windows.create({ url }, newWindow => {
-            //   setModel({
-            //     ...model,
-            //     windows: {
-            //       ...model.windows,
-            //       [newWindow.id]: {
-            //         workspace: workspaceName
-            //       }
-            //     }
-            //   });
-            // });
-          })
+          const dataToSave = {
+            [currentWorkspaceName]: tabsToClose.map(pick(['title', 'url'])),
+            workspaces_list: [currentWorkspaceName, ...model.workspaces].filter(onlyUnique),
+          };
+          chromePromise.storage.sync.set(dataToSave)
+            .catch(err => {
+              console.warn('Error saving workspace data to storage: ', err);
+            });
+
+          setModel(
+            pipe(
+              set(`windows.${window.id}.workspace`, workspaceName),
+              set('workspaces', dataToSave.workspaces_list)
+            )(model)
+          );
           break;
         default:
           return [model, NONE];
@@ -238,15 +213,21 @@ function logModelUpdated(msg, newModel) {
 }
 
 // origin for this funciton: https://gist.github.com/JamieMason/172460a36a0eaef24233e6edb2706f83
+function baseCompose(f, g) {
+  return (...args) => f(g(...args));
+}
+
 function compose(...fns) {
-  return fns.reduceRight((prevFn, nextFn) =>
-    (...args) => nextFn(prevFn(...args)),
-    value => value
-  );
-};
+  return fns.reduce(baseCompose);
+}
+
+function pipe(...fns) {
+  return fns.reduceRight(baseCompose);
+}
 
 function logger(label) {
   return value => {
+    console.log(label);
     const print = typeof value === 'string' ? console.log : console.dir;
     print(value);
     return value;
@@ -257,8 +238,16 @@ function map(fn) {
   return arr => arr.map(fn);
 }
 
+function forEach(fn) {
+  return arr => arr.forEach(fn);
+}
+
 function merge(objToMerge) {
   return baseObject => ({ ...baseObject, ...objToMerge });
+}
+
+function onlyUnique(value, index, arr) { 
+  return arr.indexOf(value) === index;
 }
 
 function pick(keys) {
@@ -284,3 +273,39 @@ function pick(keys) {
 function prop(nameProp) {
   return obj => obj[nameProp];
 }
+
+function set(path = '', value) {
+  return (obj = {}) => {
+    const clone = { ...obj };
+    const props = path.split('.');
+    switch (props.length) {
+      case 1:
+        clone[props[0]] = value;
+        break;
+      case 2:
+        var [first, second] = props;
+        if (first in clone) {
+          if (second in clone[first]) {
+            clone[first][second] = value;
+          } else {
+            clone[first] = { [second]: value };
+          }
+        }
+        break;
+      case 3:
+        var [first, second, third] = props;
+        if (first in clone) {
+          if (second in clone[first]) {
+            clone[first][second][third] = value;
+          } else {
+            clone[first][second] = { [third]: value };
+          }
+        }
+      default:
+        break;
+    }
+    return clone;
+  }
+}
+
+

@@ -30,9 +30,7 @@ function init() {
 }
 
 function render(model) {
-  root({
-    element: 'div', className: 'container', children: renderContent(model)
-  });
+  root({ element: 'div', children: renderContent(model) });
 }
 
 function root(children) {
@@ -40,18 +38,35 @@ function root(children) {
   while (root.firstChild) {
     root.removeChild(root.firstChild);
   }
-  createElement(root, children)
+  createElement(root, children);
 }
 
 function renderContent(model) {
-  return model.workspace === undefined
-    ? renderWorkspacesList(model.workspaces)
-    : [{ element: 'span', textContent: model.workspace }];
-}
-
-function renderWorkspacesList(workspacesList) {
-  const button = ws => ({ element: 'button', textContent: ws, onClick: openWorkspace(ws) });
-  return workspacesList.map(button);
+  return [{
+    element: 'ul',
+    className: 'padding-m',
+    children: model.workspaces.map(workspaceName => ({
+      element: 'li',
+      className: 'hover',
+      children: [{
+        element: 'h2',
+        className: 'color-contrast inline',
+        textContent: workspaceName,
+      }, {
+        element: 'button',
+        className: classnames(
+          'padding-m',
+          'background-transparent',
+          'marginLeft-l',
+          'marginBottom-xs',
+          'color-alternate',
+          'show-in-hover',
+          ),
+        textContent: 'Open',
+        onClick: openWorkspace(workspaceName),
+      }]
+    }))
+  }];
 }
 
 function openWorkspace(ws) {
@@ -88,6 +103,10 @@ function createElement(parent, node) {
   }
 
   parent.appendChild($element);
+}
+
+function classnames(...args) {
+  return args.join(' ');
 }
 
 function sendMessage(msg) {

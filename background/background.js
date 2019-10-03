@@ -180,47 +180,47 @@ function handleWindowsCreated(window) {
 function handleOnMessages(request, sender, sendResponse) {
   const { type, payload, window } = request;
     
-    if (type === 'get_model' && appMachine.getCurrentState() === 'appLoaded') {
-      broadcast(model);
-    }
+  if (type === 'get_model' && appMachine.getCurrentState() === 'appLoaded') {
+    broadcast(model);
+  }
 
-    const machine = model.machinesByWindowsID[window.id];
-    if (!machine) return;
+  const machine = model.machinesByWindowsID[window.id];
+  if (!machine) return;
 
-    if (type === 'use_workspace' && machine.isEventAvailable('OPEN_WORKSPACE')) {
-      openWorkspace(payload, window);
-      machine.send('OPEN_WORKSPACE');
-      setModel({
-        ...model,
-        modelsByWindowsID: {
-          ...model.modelsByWindowsID,
-          [window.id]: {
-            state: machine.getCurrentState(),
-            workspaceNameInUse: payload,
-          }
+  if (type === 'use_workspace' && machine.isEventAvailable('OPEN_WORKSPACE')) {
+    openWorkspace(payload, window);
+    machine.send('OPEN_WORKSPACE');
+    setModel({
+      ...model,
+      modelsByWindowsID: {
+        ...model.modelsByWindowsID,
+        [window.id]: {
+          state: machine.getCurrentState(),
+          workspaceNameInUse: payload,
         }
-      });
-    }
+      }
+    });
+  }
 
-    if (type === 'create_workspace' && machine.isEventAvailable('CREATE_WORKSPACE')) {
-      api.Tabs.getCurrentWindow()
-        .then(tabs => api.Workspaces.save(payload, tabs))
-        .then(dataSaved => {
-          machine.send('CREATE_WORKSPACE');
-          const { data, modelsByWindowsID } = model;
-          setModel({
-            ...model,
-            data: { ...data, ...dataSaved },
-            modelsByWindowsID: {
-              ...modelsByWindowsID,
-              [window.id]: {
-                state: machine.getCurrentState(),
-                workspaceNameInUse: payload
-              }
+  if (type === 'create_workspace' && machine.isEventAvailable('CREATE_WORKSPACE')) {
+    api.Tabs.getCurrentWindow()
+      .then(tabs => api.Workspaces.save(payload, tabs))
+      .then(dataSaved => {
+        machine.send('CREATE_WORKSPACE');
+        const { data, modelsByWindowsID } = model;
+        setModel({
+          ...model,
+          data: { ...data, ...dataSaved },
+          modelsByWindowsID: {
+            ...modelsByWindowsID,
+            [window.id]: {
+              state: machine.getCurrentState(),
+              workspaceNameInUse: payload
             }
-          })
-        });
-    }
+          }
+        })
+      });
+  }
 }
 
 function broadcast(model) {

@@ -1,23 +1,20 @@
-let currentWindow;
 
-function selectCurrentWindowModel(model, currentWindow) {
-  return { ...model, ...model.windows[currentWindow.id] }
-}
+window.onload = init;
 
-window.onload = function onLoad() {
+function mapModel(model, func) {
   chrome.windows.getCurrent(window => {
-    currentWindow = window;
-    init();
+    func({
+      data: model.data,
+      ...model.modelsByWindowsID[window.id]
+    });
   });
-};
-
+}
 
 function init() {
   chrome.extension.onMessage.addListener((request, sender, sendResponse) => {
     switch (request.type) {
       case 'MODEL_UPDATED':
-        console.log('MODEL_UPDATED');
-        render(selectCurrentWindowModel(request.payload, currentWindow));
+        mapModel(request.payload, render);
       default:
         break;
     }
@@ -30,8 +27,56 @@ function init() {
 }
 
 function render(model) {
+  console.log('Render: ', model);
   root({ element: 'div', children: renderContent(model) });
 }
+
+function renderContent(model) {
+  return [{
+    element: 'ul',
+    className: 'padding-m',
+    children: model.data.__workspaces_names__.map(workspaceName => ({
+      element: 'li',
+      className: 'hover',
+      children: [{
+        element: 'div',
+        children: [{
+          element: 'h2',
+          className: 'color-contrast inline',
+          textContent: workspaceName,
+        }, {
+          element: 'button',
+          className: classnames(
+            'padding-m',
+            'background-transparent',
+            'marginLeft-l',
+            'marginBottom-xs',
+            'color-alternate',
+            'show-in-hover',
+            ),
+          textContent: 'Open',
+          onClick: () => sendMessage({ type: 'use_workspace', payload: workspaceName }),
+        }]
+      }, {
+        element: 'div',
+        children: model.data[workspaceName].tabs.map(tab => ({
+          element: 'img',
+          className: classnames(
+            'width-s',
+            'height-s',
+            'beforeBackgroundColor-secondary',
+            'marginRight-s',
+          ),
+          src: tab.favIconUrl,
+          // textContent: tab.title
+        }))
+      }],
+    }))
+  }];
+}
+
+
+// HELPERS
 
 function root(children) {
   const root = document.getElementById('root');
@@ -41,60 +86,17 @@ function root(children) {
   createElement(root, children);
 }
 
-function renderContent(model) {
-  return [{
-    element: 'ul',
-    className: 'padding-m',
-    children: model.workspaces.map(workspaceName => ({
-      element: 'li',
-      className: 'hover',
-      children: [{
-        element: 'h2',
-        className: 'color-contrast inline',
-        textContent: workspaceName,
-      }, {
-        element: 'button',
-        className: classnames(
-          'padding-m',
-          'background-transparent',
-          'marginLeft-l',
-          'marginBottom-xs',
-          'color-alternate',
-          'show-in-hover',
-          ),
-        textContent: 'Open',
-        onClick: openWorkspace(workspaceName),
-      }]
-    }))
-  }];
-}
-
-function openWorkspace(ws) {
-  return () => {
-    sendMessage({ type: 'request_to_open_workspace', payload: ws });
-  };
-}
-
-
-
-// HELPERS
-
-
 function createElement(parent, node) {
   const $element = document.createElement(node.element);
-  const { className, children, textContent, onClick } = node;
-  
-  if (className !== undefined) {
-    $element.className = node.className;
-  }
+  const { children, onClick, ...rest } = node;
 
-  if (textContent !== undefined) {
-    $element.textContent = textContent;  
-  }
-
-  if (onClick !== undefined) {
+  if (onClick) {
     $element.onclick = onClick;
   }
+
+  Object.keys(rest).forEach(key => {
+    $element[key] = rest[key];
+  });
 
   if (children !== undefined) {
     node.children.forEach(child => {
@@ -110,5 +112,7 @@ function classnames(...args) {
 }
 
 function sendMessage(msg) {
-  chrome.runtime.sendMessage({ ...msg, window: currentWindow });
+  chrome.windows.getCurrent(window => {
+    chrome.extension.sendMessage({ ...msg, window });
+  });
 }

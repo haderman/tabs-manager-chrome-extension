@@ -10,7 +10,12 @@
     "activeTab"
   ],
   "background": {
-    "scripts": ["chrome-promise.js", "background.js"],
+    "scripts": [
+      "shared/fp.js",
+      "background/chrome-promise.js",
+      "background/api.js",
+      "background/background.js"
+    ],
     "persistent": false
   },
   "browser_action": {

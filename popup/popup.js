@@ -1,28 +1,125 @@
+function createMachine(states, actions) {
+  let currentState = states.initial;
+  let currentContext = states.context;
+
+  const _setState = state => {
+    console.log(`%c${currentState} %c-> %c${state}`,
+      'color:gray', 'color:white', 'color:green');
+    currentState = state;
+  };
+
+  const _isEventAvailable = event => event in states[currentState].on;
+
+  const _handleEventValue = (event, value) => {
+    const eventValue = states[currentState].on[event];
+
+    if (typeof eventValue === 'string') {
+      return eventValue;
+    }
+
+    eventValue.actions.forEach(action => {
+      currentContext = actions[action](currentContext, event, value); 
+    });
+    return eventValue.target;
+  };
+
+  return {
+    send(event, value) {
+      if (_isEventAvailable(event)) {
+        console.group('event: ', event);
+        const nextState = _handleEventValue(event, value);
+        _setState(nextState);
+        console.groupEnd();
+      }
+      return currentState;
+    },
+    isEventAvailable(event) {
+      return _isEventAvailable(event);
+    },
+    getCurrentState() {
+      return currentState;
+    },
+    getCurrentContext() {
+      return currentContext;
+    },
+  };
+}
+
+const inputStates = {
+  initial: 'empty',
+  context: '',
+  empty: {
+    on: {
+      NEW_INPUT_VALUE: {
+        target: 'withText',
+        actions: ['updateValue']
+      }
+    }
+  },
+  withText: {
+    on: {
+      NEW_INPUT_VALUE: {
+        target: 'withText',
+        actions: ['updateValue']
+      }
+    }
+  }
+}; 
+
+const inputActions = {
+  updateValue: (context, event, value) => {
+    return value;
+  }
+};
+
+const inputMachine = createMachine(inputStates, inputActions);
+
+
 // temporal
 let inputValue = '';
 
 window.onload = init;
 
+let model = {};
+function setModel(newModel) {
+  console.log('set model: ', newModel);
+  if (model !== newModel) {
+    model = newModel;
+    render(model);
+  }
+}
+
 function mapModel(model, func) {
   chrome.windows.getCurrent(window => {
     func({
+      input: {
+        state: inputMachine.getCurrentState(),
+        value: inputMachine.getCurrentContext(),
+      },
       data: model.data,
-      ...model.modelsByWindowsID[window.id]
+      ...model.modelsByWindowsID[window.id],
     });
   });
 }
 
 function init() {
   chrome.extension.onMessage.addListener((request, sender, sendResponse) => {
-    switch (request.type) {
-      case 'MODEL_UPDATED':
-        mapModel(request.payload, render);
-      default:
-        break;
+    if (request.type === 'MODEL_UPDATED') {
+      mapModel(request.payload, setModel);
     }
   });
   
   sendMessage({ type: 'get_model' });
+}
+
+function updateInputModel() {
+  setModel({
+    ...model,
+    input: {
+      state: inputMachine.getCurrentState(),
+      value: inputMachine.getCurrentContext()
+    }
+  });
 }
 
 function render(model) {
@@ -32,12 +129,12 @@ function render(model) {
     children: [{
       element: 'div',
       className: 'color-contrast',
-      textContent: model.state
+      textContent: model.input.state
     }, {
       element: 'section',
       className: 'background-primary',
       children: [
-        model.state === 'started' ? viewForm() :
+        model.state === 'started' ? viewForm(model.input) :
         model.state === 'workspaceInUse' ? viewWorkspaceName(model.workspaceNameInUse) :
         null
       ]
@@ -62,7 +159,7 @@ function viewWorkspaceName(name) {
   };
 }
 
-function viewForm() {
+function viewForm({ state, value }) {
   return {
     element: 'div',
     className: 'grid grid-template-col-2 grid-col-gap-m',
@@ -74,19 +171,27 @@ function viewForm() {
         'fontSize-s',
         'padding-s'
       ),
-      onChange: (e) => { inputValue = e.target.value },
+      value,
+      onChange: (e) => {
+        inputMachine.send('NEW_INPUT_VALUE', e.target.value);
+      },
+      onKeyUp: (e) => {
+        inputMachine.send('NEW_INPUT_VALUE', e.target.value);
+        updateInputModel();
+      }
     }, {
       element: 'button',
       className: classnames(
         'background-alternate',
         'color-contrast',
         'fontSize-s',
-        'padding-s'
+        'padding-s',
+        state === 'empty' ? 'pointerEvents-none' : ''
       ),
       textContent: 'Save',
       onClick: () => {
-        if (inputValue !== '') {
-          sendMessage({ type: 'create_workspace', payload: inputValue })
+        if (state === 'withText') {
+          // sendMessage({ type: 'create_workspace', payload: inputValue })
         }
       },
     }]
@@ -144,12 +249,12 @@ function root(children) {
   while (root.firstChild) {
     root.removeChild(root.firstChild);
   }
-  createElement(root, children)
+  createElement(root, children);
 }
 
 function createElement(parent, node) {
   const $element = document.createElement(node.element);
-  const { children, onClick, onChange, ...rest } = node;
+  const { children, onClick, onChange, onKeyUp, ...rest } = node;
 
   if (onClick) {
     $element.onclick = onClick;
@@ -157,6 +262,10 @@ function createElement(parent, node) {
 
   if (onChange) {
     $element.onchange = onChange;
+  }
+
+  if (onKeyUp) {
+    $element.onkeyup = onKeyUp;
   }
 
   Object.keys(rest).forEach(key => {

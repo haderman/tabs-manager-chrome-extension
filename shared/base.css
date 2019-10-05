@@ -173,3 +173,8 @@ img::before {
 .height-m { height: 100px; }
 .height-l { height: 150px; }
 .height-xl { height: 200px; }
+
+.pointerEvents-none {
+  pointer-events: none;
+  cursor: not-allowed;
+}

@@ -39,7 +39,7 @@ const windowStates = {
   }
 };
 
-function createMachineV2(states) {
+function createMachine(states) {
   let currentState = states.initial;
   
   const _setState = state => {
@@ -82,7 +82,7 @@ function setModel(newModelV2) {
   }
 } 
 
-const appMachine = createMachineV2(appStates);
+const appMachine = createMachine(appStates);
 
 init();
 
@@ -140,7 +140,7 @@ async function checkOpenedWindows() {
       machinesByWindowsID = {};
       
   windowsOpenedIDs.forEach(id => {
-    const machine = createMachineV2(windowStates);
+    const machine = createMachine(windowStates);
     machinesByWindowsID[id] = machine;
     modelsByWindowsID[id] = { state: machine.getCurrentState() };
   });
@@ -160,7 +160,7 @@ function subscribeEvents() {
 function handleWindowsCreated(window) {
   const { id } = window;
   const { machinesByWindowsID, modelsByWindowsID, windowsOpenedIDs } = model;
-  const machine = createMachineV2(windowStates);
+  const machine = createMachine(windowStates);
   setModel({
     ...model,
     machinesByWindowsID: {

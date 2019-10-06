@@ -85,7 +85,7 @@ function setModel(newModel) {
   console.log('set model: ', newModel);
   if (model !== newModel) {
     model = newModel;
-    render(model);
+    render(view(model), document.getElementById('root'));
   }
 }
 
@@ -122,86 +122,78 @@ function updateInputModel() {
   });
 }
 
-function render(model) {
-  console.log('Render: ', model);
-  root({
-    element: 'div',
-    children: [{
-      element: 'div',
-      className: 'color-contrast',
-      textContent: model.input.state
-    }, {
-      element: 'section',
-      className: 'background-primary',
-      children: [
+function view(model) {
+  console.log('View: ', model);
+  return (
+    div({},
+      div({ className: 'color-contrast' },
+        text(model.input.state)
+      ),
+      section({ className: 'background-primary' },
         model.state === 'started' ? viewForm(model.input) :
         model.state === 'workspaceInUse' ? viewWorkspaceName(model.workspaceNameInUse) :
         null
-      ]
-    }, {
-      element: 'section',
-      children: [{
-        element: 'h3',
-        className: 'color-contrast',
-        textContent: 'YOUR WORKSPACES',
-      },
+      ),
+      section({},
+        h3({ className: 'color-contrast' },
+          text('YOUR WORKSPACES')
+        ),
         viewWorkspacesList(model.data.__workspaces_names__)
-      ]
-    }]
-  });
-}
-
-function viewWorkspaceName(name) {
-  return {
-    element: 'h1',
-    className: 'color-alternate textAlign-center',
-    textContent: name,
-  };
+      )
+    )
+  )
 }
 
 function viewForm({ state, value }) {
-  return {
-    element: 'div',
-    className: 'grid grid-template-col-2 grid-col-gap-m',
-    children: [{
-      element: 'input',
+  const inputName = () => (
+    input({
       className: classnames(
         'background-secondary',
         'color-contrast',
         'fontSize-s',
         'padding-s'
       ),
-      value,
-      onChange: (e) => {
-        inputMachine.send('NEW_INPUT_VALUE', e.target.value);
-      },
       onKeyUp: (e) => {
         inputMachine.send('NEW_INPUT_VALUE', e.target.value);
         updateInputModel();
       }
-    }, {
-      element: 'button',
-      className: classnames(
-        'background-alternate',
-        'color-contrast',
-        'fontSize-s',
-        'padding-s',
-        state === 'empty' ? 'pointerEvents-none' : ''
-      ),
-      textContent: 'Save',
-      onClick: () => {
-        if (state === 'withText') {
-          // sendMessage({ type: 'create_workspace', payload: inputValue })
-        }
-      },
-    }]
-  };
+    })
+  )
+  return (
+    div({ className: 'grid grid-template-col-2 grid-col-gap-m' },
+      inputName(),
+      button(
+        {
+          className: classnames(
+            'background-alternate',
+            'color-contrast',
+            'fontSize-s',
+            'padding-s',
+            state === 'empty' ? 'pointerEvents-none' : ''
+          ),
+          onClick: () => {
+            if (state === 'withText') {
+              // sendMessage({ type: 'create_workspace', payload: inputValue })
+            }
+          }
+        },
+        text('Save')
+      )
+    )
+  )
+}
+
+function viewWorkspaceName(name) {
+  return (
+    h1({ className: 'color-alternate textAlign-center' },
+      text(name)
+    )
+  )
 }
 
 function viewWorkspacesList(workspacesList) {
-  const action = (text, func) => ({
-    element: 'button',
-    className: classnames(
+  const action = (label, func) => {
+    const style = classnames(
       'padding-xs',
       'marginLeft-m',
       'fontSize-xs',
@@ -210,80 +202,34 @@ function viewWorkspacesList(workspacesList) {
       'borderColor-alternate',
       'color-alternate',
       'background-transparent'
-    ),
-    textContent: text,
-    onClick: func,
-  });
+    );
+    return (
+      button({ className: style, onClick: func },
+        text(label)
+      )
+    )
+  };
 
-  return {
-    element: 'ul',
-    children: workspacesList.map(workspaceName => ({
-      element: 'li',
-      className: 'padding-m color-contrast fontSize-s hover',
-      children: [{
-        element: 'span',
-        className: 'fontSize-m',
-        textContent: workspaceName,
-      }, {
-        element: 'span',
-        className: 'marginLeft-xl show-in-hover',
-        children: [
+  return (
+    ul({}, ...workspacesList.map(workspaceName => (
+      li({ className: 'padding-m color-contrast fontSize-s hover' },
+        span({ className: 'fontSize-m' },
+          text(workspaceName)
+        ),
+        span({ className: 'marginLeft-xl show-in-hover' },
           action('Save', () => { console.log('SAve ')}),
           action('Open', () => sendMessage({
             type: 'use_workspace',
             payload: workspaceName
           }))
-        ]
-      }
-    ]  
-    }))
-  };
+        )
+      )
+    )))
+  );
 }
-
 
 
 // HELPERS
-
-function root(children) {
-  const root = document.getElementById('root');
-  while (root.firstChild) {
-    root.removeChild(root.firstChild);
-  }
-  createElement(root, children);
-}
-
-function createElement(parent, node) {
-  const $element = document.createElement(node.element);
-  const { children, onClick, onChange, onKeyUp, ...rest } = node;
-
-  if (onClick) {
-    $element.onclick = onClick;
-  }
-
-  if (onChange) {
-    $element.onchange = onChange;
-  }
-
-  if (onKeyUp) {
-    $element.onkeyup = onKeyUp;
-  }
-
-  Object.keys(rest).forEach(key => {
-    $element[key] = rest[key];
-  });
-
-  if (children !== undefined) {
-    node.children.forEach(child => {
-      createElement($element, child);
-    });  
-  }
-
-  parent.appendChild($element);
-}
-
-function classnames(...args) {
-  return args.join(' ');
-}
 
 function sendMessage(msg) {
   chrome.windows.getCurrent(window => {

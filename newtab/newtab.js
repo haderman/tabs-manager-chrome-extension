@@ -17,7 +17,7 @@ function init() {
     switch (request.type) {
       case 'MODEL_UPDATED':
         mapModel(request.payload, model => {
-          render(content(model), ROOT);
+          render(view(model), ROOT);
         });
       default:
         break;
@@ -30,7 +30,7 @@ function init() {
   }, 100);
 }
 
-function content(model) {
+function view(model) {
   function openButton(workspaceName) {
     const style = classnames(
       'padding-m',

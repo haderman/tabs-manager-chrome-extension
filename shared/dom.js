@@ -1,3 +1,4 @@
+'use strinct';
 
 let rootInstance = null;
 
@@ -33,7 +34,7 @@ function reconcile(parentDom, instance, element) {
 function reconcileChildren(instance, element) {
   const dom = instance.dom;
   const childInstances = instance.childInstances;
-  const nextChildElements = elements.props.children || [];
+  const nextChildElements = element.props.children || [];
   const newChildInstances = [];
   const count = Math.max(childInstances.length, nextChildElements.length);
   for (let i = 0; i < count; i++) {
@@ -111,7 +112,7 @@ function text(nodeValue) {
 }
 
 function createElementFactory(type) {
-  return (props, ...args) => createElement(type, props, ...args);
+  return (config, ...args) => createElement(type, config, ...args);
 }
 
 function classnames(...args) {
@@ -132,3 +133,4 @@ const h3 = createElementFactory('h3');
 const h4 = createElementFactory('h4');
 const h5 = createElementFactory('h5');
 const p = createElementFactory('p');
+const input = createElementFactory('input');

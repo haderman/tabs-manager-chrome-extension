@@ -44,6 +44,7 @@ function createLogger() {
     },
     groupEnd() {
       console.groupEnd();
+      return createLogger();
     },
     templates: {
       chip: chipTemplate,

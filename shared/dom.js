@@ -1,5 +1,7 @@
 'use strinct';
 
+// source: https://github.com/pomber/didact
+
 let rootInstance = null;
 
 function render(element, container) {
@@ -9,12 +11,12 @@ function render(element, container) {
 }
 
 function reconcile(parentDom, instance, element) {
-  if (instance === null) {
+  if (instance === null || instance === undefined) {
     // Create instance
     const newInstance = instantiate(element);
     parentDom.appendChild(newInstance.dom);
     return newInstance;
-  } else if (element === null) {
+  } else if (element === null || element === undefined) {
     // Remove instance
     parentDom.removeChild(instance.dom);
   } else if (instance.element.type === element.type) {

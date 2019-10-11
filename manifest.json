@@ -11,8 +11,9 @@
   ],
   "background": {
     "scripts": [
-      "shared/fp.js",
       "background/chrome-promise.js",
+      "shared/fp.js",
+      "shared/logger.js",
       "background/api.js",
       "background/background.js"
     ],

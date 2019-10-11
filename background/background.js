@@ -1,6 +1,7 @@
 'use strict';
 
 const chromePromise = new ChromePromise();
+const logger = createLogger();
 
 const appStates = {
   initial: 'loadingApp',
@@ -42,20 +43,15 @@ const windowStates = {
 function createMachine(states) {
   let currentState = states.initial;
   
-  const _setState = state => {
-    console.log(`%c${currentState} %c-> %c${state}`,
-      'color:gray', 'color:white', 'color:green');
-    currentState = state;
-  };
-
+  const _setState = state => { currentState = state; };
   const _isEventAvailable = event => event in states[currentState].on;
 
   return {
     send(event) {
       if (_isEventAvailable(event)) {
-        console.group('event: ', event);
-        _setState(states[currentState].on[event]);
-        console.groupEnd();
+        const newState = states[currentState].on[event];
+        logMachineEvent(event, currentState, newState);
+        _setState(newState);
       }
       return currentState;
     },
@@ -77,7 +73,6 @@ let model = {
 function setModel(newModelV2) {
   if (model !== newModelV2) {
     model = newModelV2;
-    console.log('NEW MODEL: ', model);
     broadcast(model);
   }
 } 
@@ -179,26 +174,34 @@ function handleWindowsCreated(window) {
 
 function handleOnMessages(request, sender, sendResponse) {
   const { type, payload, window } = request;
-    
-  if (type === 'get_model' && appMachine.getCurrentState() === 'appLoaded') {
-    broadcast(model);
+  logMessage(type, payload, window);
+  
+  if (appMachine.getCurrentState() !== 'appLoaded') return;
+
+  if (type === 'popup_opened' || type === 'newtab_opened') {
+    broadcast(model)
   }
 
   const machine = model.machinesByWindowsID[window.id];
   if (!machine) return;
 
   if (type === 'use_workspace' && machine.isEventAvailable('OPEN_WORKSPACE')) {
-    openWorkspace(payload, window);
-    machine.send('OPEN_WORKSPACE');
-    setModel({
-      ...model,
-      modelsByWindowsID: {
-        ...model.modelsByWindowsID,
-        [window.id]: {
-          state: machine.getCurrentState(),
-          workspaceNameInUse: payload,
+    openWorkspace(payload, window).then(prevWorkspaceData => {
+      machine.send('OPEN_WORKSPACE');
+      setModel({
+        ...model,
+        data: {
+          ...model.data,
+          ...prevWorkspaceData
+        },
+        modelsByWindowsID: {
+          ...model.modelsByWindowsID,
+          [window.id]: {
+            state: machine.getCurrentState(),
+            workspaceNameInUse: payload,
+          }
         }
-      }
+      });
     });
   }
 
@@ -233,9 +236,9 @@ function broadcast(model) {
 
 async function openWorkspace(workspaceName, window) {
   const getCurrentWorkspace = pipe(
-    prop('windows'),
+    prop('modelsByWindowsID'),
     prop(window.id),
-    prop('workspace'),
+    prop('workspaceNameInUse'),
     defaultTo('last-sesion'),
   );
   
@@ -251,16 +254,40 @@ async function openWorkspace(workspaceName, window) {
   await api.Tabs.create(tabsToOpen);
   await api.Tabs.remove(currentlyOpenTabs.map(prop('id')));
   
-  const workspaceSaved = await api.Workspaces.save(getCurrentWorkspace(model), currentlyOpenTabs);
-  
-  setModel({
-    ...model,
-    ...workspaceSaved,
-    windows: {
-      [window.id]: {
-        workspace: workspaceName
-      }
-    }
-  });
+  const {
+    __workspaces_names__,
+    ...rest
+  } = await api.Workspaces.save(getCurrentWorkspace(model), currentlyOpenTabs);
+
+  return rest;
+}
+
+
+// HELPERS
+
+function logMachineEvent(event, currentState, newState) {
+  logger
+    .group(logger.templates.compose(
+      logger.templates.colorText('Event'),
+      logger.templates.separator(' '),
+      logger.templates.chip(event, { background: '#a7a7a7', color: '#333' })
+    ))
+    .log(logger.templates.changed(currentState, newState))
+    .time()
+    .groupEnd();
+}
+
+function logMessage(type, payload, window = {}) {
+  logger
+    .group(logger.templates.compose(
+      logger.templates.colorText('Message', '#9b59b6'),
+      logger.templates.separator(' '),
+      logger.templates.chip(type, { background: '#2980b9' })
+    ))
+    .log(`payload: ${payload}`)
+    .log(`window id: ${window.id}`)
+    .log(model)
+    .time()
+    .groupEnd();
 }
 

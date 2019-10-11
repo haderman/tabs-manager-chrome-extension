@@ -61,7 +61,8 @@ const inputStates = {
       NEW_INPUT_VALUE: {
         target: 'withText',
         actions: ['updateValue']
-      }
+      },
+      CLEAR_INPUT: 'empty'
     }
   }
 }; 
@@ -91,13 +92,14 @@ function setModel(newModel) {
 
 function mapModel(model, func) {
   chrome.windows.getCurrent(window => {
+    const getWindowsModel = compose(defaultTo({}), prop(window.id), prop('modelsByWindowsID'));
     func({
       input: {
         state: inputMachine.getCurrentState(),
         value: inputMachine.getCurrentContext(),
       },
       data: model.data,
-      ...model.modelsByWindowsID[window.id],
+      ...getWindowsModel(model)
     });
   });
 }
@@ -109,7 +111,7 @@ function init() {
     }
   });
   
-  sendMessage({ type: 'get_model' });
+  sendMessage({ type: 'popup_opened' });
 }
 
 function updateInputModel() {
@@ -145,42 +147,44 @@ function view(model) {
 }
 
 function viewForm({ state, value }) {
-  const inputName = () => (
-    input({
-      className: classnames(
-        'background-secondary',
-        'color-contrast',
-        'fontSize-s',
-        'padding-s'
-      ),
-      onKeyUp: (e) => {
-        inputMachine.send('NEW_INPUT_VALUE', e.target.value);
-        updateInputModel();
-      }
-    })
-  )
+  const buttonStyle = classnames(
+    'background-alternate',
+    'color-contrast',
+    'fontSize-s',
+    'padding-s',
+    state === 'empty' ? 'pointerEvents-none' : ''
+  );
+
+  const inputStyle = classnames(
+    'background-secondary',
+    'color-contrast',
+    'fontSize-s',
+    'padding-s'
+  );
+
+  const handleOnClick = () => {
+    if (state === 'withText') {
+      sendMessage({ type: 'create_workspace', payload: value })
+    }
+  };
+
+  const handleKeyUp = ({ target: { value } }) => {
+    if (value.trim() === '') {
+      inputMachine.send('CLEAR_INPUT');
+    } else {
+      inputMachine.send('NEW_INPUT_VALUE', value);
+    }
+    updateInputModel();
+  };
+
   return (
-    div({ className: 'grid grid-template-col-2 grid-col-gap-m' },
-      inputName(),
-      button(
-        {
-          className: classnames(
-            'background-alternate',
-            'color-contrast',
-            'fontSize-s',
-            'padding-s',
-            state === 'empty' ? 'pointerEvents-none' : ''
-          ),
-          onClick: () => {
-            if (state === 'withText') {
-              // sendMessage({ type: 'create_workspace', payload: inputValue })
-            }
-          }
-        },
+    div({ className: 'grid gridTemplateCol-2 grid-col-gap-m' },
+      input({ className: inputStyle, onKeyUp: handleKeyUp }),
+      button({ className: buttonStyle, onClick: handleOnClick },
         text('Save')
-      )
+      ),
     )
-  )
+  );
 }
 
 function viewWorkspaceName(name) {
@@ -192,22 +196,19 @@ function viewWorkspaceName(name) {
 }
 
 function viewWorkspacesList(workspacesList) {
-  const action = (label, func) => {
-    const style = classnames(
-      'padding-xs',
-      'marginLeft-m',
-      'fontSize-xs',
-      'rounded',
-      'border-s',
-      'borderColor-alternate',
-      'color-alternate',
-      'background-transparent'
-    );
-    return (
-      button({ className: style, onClick: func },
-        text(label)
-      )
-    )
+  const buttonStyle = classnames(
+    'padding-xs',
+    'marginLeft-m',
+    'fontSize-xs',
+    'rounded',
+    'border-s',
+    'borderColor-alternate',
+    'color-alternate',
+    'background-transparent'
+  );
+
+  const handleOnClick = workspaceName => () => {
+    sendMessage({ type: 'use_workspace', payload: workspaceName });
   };
 
   return (
@@ -217,11 +218,9 @@ function viewWorkspacesList(workspacesList) {
           text(workspaceName)
         ),
         span({ className: 'marginLeft-xl show-in-hover' },
-          action('Save', () => { console.log('SAve ')}),
-          action('Open', () => sendMessage({
-            type: 'use_workspace',
-            payload: workspaceName
-          }))
+          button({ className: buttonStyle, onClick: handleOnClick(workspaceName) },
+            text('Open')
+          )
         )
       )
     )))

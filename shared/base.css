@@ -83,6 +83,9 @@ img::before {
 .border-s { border: 1px solid; }
 .border-m { border: 2px solid; }
 .border-l { border: 3px solid; }
+.borderBottom-s { border-bottom: 1px solid; }
+.borderBottom-m { border-bottom: 2px solid; }
+.borderBottom-l { border-bottom: 3px solid; }
 
 /* PALETTE COLORS */
 /* the same order (top -> bottom) than https://colorhunt.co/palette/2763 */
@@ -118,61 +121,93 @@ img::before {
 .fontSize-xl { font-size: 22px; }
 
 /* SPACES */
+.padding-none { padding: 0px; }
 .padding-xs { padding: 3px; }
 .padding-s { padding: 8px; }
 .padding-m { padding: 10px; }
 .padding-l { padding: 12px; }
 .padding-xl { padding: 15px; }
+.paddingLeft-none { padding-left: 0px; }
 .paddingLeft-xs { padding-left: 3px; }
 .paddingLeft-s { padding-left: 8px; }
 .paddingLeft-m { padding-left: 10px; }
 .paddingLeft-l { padding-left: 12px; }
 .paddingLeft-xl { padding-left: 15px; }
+.paddingLeftRight-none { padding-right: 0px; padding-left: 0px; }
 .paddingLeftRight-xs { padding-right: 3px; padding-left: 3px; }
 .paddingLeftRight-s { padding-right: 8px; padding-left: 8px; }
 .paddingLeftRight-m { padding-right: 10px; padding-left: 10px; }
 .paddingLeftRight-l { padding-right: 12px; padding-left: 12px; }
 .paddingLeftRight-xl { padding-right: 15px; padding-left: 15px; }
+.marginLeft-none { margin-left: 0px; }
 .marginLeft-xs { margin-left: 3px; }
 .marginLeft-s { margin-left: 8px; }
 .marginLeft-m { margin-left: 10px; }
 .marginLeft-l { margin-left: 12px; }
 .marginLeft-xl { margin-left: 15px; }
+.marginRight-none { margin-right: 0px; }
 .marginRight-xs { margin-right: 3px; }
 .marginRight-s { margin-right: 8px; }
 .marginRight-m { margin-right: 10px; }
 .marginRight-l { margin-right: 12px; }
 .marginRight-xl { margin-right: 15px; }
+.marginBottom-none { margin-bottom: 0px; }
 .marginBottom-xs { margin-bottom: 3px; }
 .marginBottom-s { margin-bottom: 8px; }
 .marginBottom-m { margin-bottom: 10px; }
 .marginBottom-l { margin-bottom: 12px; }
 .marginBottom-xl { margin-bottom: 15px; }
+.marginTop-none { margin-top: 0px; }
+.marginTop-xs { margin-top: 3px; }
+.marginTop-s { margin-top: 8px; }
+.marginTop-m { margin-top: 10px; }
+.marginTop-l { margin-top: 12px; }
+.marginTop-xl { margin-top: 15px; }
 
 /* GRID */
 .grid { display: grid; }
-.grid-template-col-2 { grid-template-columns: auto auto; }
-.grid-col-gap-xs { grid-column-gap: 5px; }
-.grid-col-gap-s { grid-column-gap: 8px; }
-.grid-col-gap-m { grid-column-gap: 10px; }
-.grid-col-gap-l { grid-column-gap: 12px; }
-.grid-col-gap-xl { grid-column-gap: 15px; }
+.gridTemplateCol-2 { grid-template-columns: auto auto; }
+.gridTemplateCol-repeat-xl { grid-template-columns: repeat(auto-fill, 380px); }
+.gridGap-xs { grid-gap: 10px; }
+.gridGap-s { grid-gap: 30px; }
+.gridGap-m { grid-gap: 50px; }
+.gridGap-l { grid-gap: 80px; }
+.gridGap-xl { grid-gap: 100px; }
+.gridColGap-xs { grid-column-gap: 5px; }
+.gridColGap-s { grid-column-gap: 8px; }
+.gridColGap-m { grid-column-gap: 10px; }
+.gridColGap-l { grid-column-gap: 12px; }
+.gridColGap-xl { grid-column-gap: 15px; }
 
-.inline {
-  display: inline-flex;
-}
+
+/* FLEXBOX */
+.flex { display: flex; }
+.inline-flex { display: inline-flex; }
+
+/* ALIGNING */ 
+.alignItems-center { align-items: center; }
+.justifyContent-center { justify-content: center; }
+.justifyContent-space-between { justify-content: space-between; }
 
 /* SIZES */
 .width-xs { width: 25px; }
 .width-s { width: 50px; }
 .width-m { width: 100px; }
 .width-l { width: 150px; }
-.width-xl { width: 200px ;}
+.width-xl { width: 380px ;}
 .height-xs { height: 25px; }
 .height-s { height: 50px; }
 .height-m { height: 100px; }
 .height-l { height: 150px; }
-.height-xl { height: 200px; }
+.height-xl { height: 380px; }
+.height-fit-content { height: fit-content; }
+
+
+/* TEXTS */
+.ellipsis { text-overflow: ellipsis; }
+.whiteSpace-nowrap { white-space: nowrap; }
+
+.overflowHidden { overflow: hidden; }
 
 .pointerEvents-none {
   pointer-events: none;

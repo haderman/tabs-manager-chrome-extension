@@ -11,15 +11,6 @@ function pipe(...fns) {
   return fns.reduceRight(baseCompose);
 }
 
-function logger(label) {
-  return value => {
-    console.log(label);
-    const print = typeof value === 'string' ? console.log : console.dir;
-    print(value);
-    return value;
-  }
-}
-
 function map(fn) {
   return arr => arr.map(fn);
 }

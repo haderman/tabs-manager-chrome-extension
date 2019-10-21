@@ -1,6 +1,7 @@
 'use strinct';
 
 // source: https://github.com/pomber/didact
+// https://blog.atulr.com/react-custom-renderer-1/
 
 let rootInstance = null;
 
@@ -11,25 +12,37 @@ function render(element, container) {
 }
 
 function reconcile(parentDom, instance, element) {
-  if (instance === null || instance === undefined) {
+  if (instance == null) {
     // Create instance
     const newInstance = instantiate(element);
     parentDom.appendChild(newInstance.dom);
+    
     return newInstance;
-  } else if (element === null || element === undefined) {
+  } else if (element == null) {
     // Remove instance
     parentDom.removeChild(instance.dom);
-  } else if (instance.element.type === element.type) {
-    // Update instance
+    return null;
+  } else if (instance.element.type !== element.type) {
+    // Replace instance
+    const newInstance = instantiate(element);
+    parentDom.replaceChild(newInstance.dom, instance.dom);
+    return newInstance;
+  } else if (typeof element.type === 'string') {
+    // Update dom instance
     updateDomProperties(instance.dom, instance.element.props, element.props);
     instance.childInstances = reconcileChildren(instance, element);
     instance.element = element;
     return instance;
   } else {
-    // Replace instance
-    const newInstance = instantiate(element);
-    parentDom.replaceChild(newInstance.dom, instance.dom);
-    return newInstance;
+    //Update composite instance
+    instance.publicInstance.props = element.props;
+    const childElement = instance.publicInstance.render();
+    const oldChildInstance = instance.childInstance;
+    const childInstance = reconcile(parentDom, oldChildInstance, childElement);
+    instance.dom = childInstance.dom;
+    instance.childInstance = childInstance;
+    instance.element = element;
+    return instance;
   }
 }
 
@@ -50,28 +63,51 @@ function reconcileChildren(instance, element) {
 
 function instantiate(element) {
   const { type, props } = element;
+  const isDomElement = typeof type === 'string';
 
-  // Create DOM element
-  const isTextElement = type === 'text';
-  const dom = isTextElement
-    ? document.createTextNode('')
-    : document.createElement(type);
+  if (isDomElement) {
+    // Create DOM element
+    const isTextElement = type === 'text';
+    const dom = isTextElement ? document.createTextNode('') : document.createElement(type);
+    updateDomProperties(dom, [], props);
+      
+    // Instantiate and append children
+    const childElements = props.children || [];
+    const childInstances = childElements.map(instantiate);
+    const childDoms = childInstances.map(childInstance => childInstance.dom);
+    childDoms.forEach(childDom => dom.appendChild(childDom));
+  
+    if (element.props.ref) {
+      setTimeout(function callRef() {
+        element.props.ref(dom);  
+      });
+    }
 
-  updateDomProperties(dom, [], props);
-    
-  // Instantiate and append children
-  const childElements = props.children || [];
-  const childInstances = childElements.map(instantiate);
-  const childDoms = childInstances.map(childInstance => childInstance.dom);
-  childDoms.forEach(childDom => dom.appendChild(childDom));
+    const instance = { dom, element, childInstances };
+    return instance;
+  } else {
+    // Instantiate component element
+    const instance = {};
+    const publicInstance = createPublicInstance(element, instance);
+    const childElement = publicInstance.render();
+    const childInstance = instantiate(childElement);
+    const dom = childInstance.dom;
 
-  const instance = { dom, element, childInstances };
-  return instance;
+    Object.assign(instance, { dom, element, childInstance, publicInstance });
+    return instance;
+  }
+}
+
+function createPublicInstance(element, internalInstance) {
+  const { type, props } = element;
+  const publicInstance = new type(props);
+  publicInstance.__internalInstance = internalInstance;
+  return publicInstance;
 }
 
 function updateDomProperties(dom, prevProps, nextProps) {
-  const isEvent = name => name.startsWith("on");
-  const isAttribute = name => !isEvent(name) && name != "children";
+  const isEvent = name => name.startsWith('on');
+  const isAttribute = name => !isEvent(name) && name != 'children';
 
   // Remove event listeners
   Object.keys(prevProps).filter(isEvent).forEach(name => {
@@ -96,10 +132,10 @@ function updateDomProperties(dom, prevProps, nextProps) {
   });
 }
 
-function createElement(type, config, ...args) {
+function createElement(type, config, ...children) {
   const props = Object.assign({}, config);
-  const hasChildren = args.length > 0;
-  const rawChildren = hasChildren ? [].concat(...args) : [];
+  const hasChildren = children.length > 0;
+  const rawChildren = hasChildren ? [].concat(...children) : [];
   props.children = rawChildren
     .filter(c => c != null && c !== false)
     .map(c => c instanceof Object ? c : text(c));
@@ -114,7 +150,7 @@ function text(nodeValue) {
 }
 
 function createElementFactory(type) {
-  return (config, ...args) => createElement(type, config, ...args);
+  return (config, ...children) => createElement(type, config, ...children);
 }
 
 function classnames(...args) {

@@ -17,7 +17,7 @@
       "background/api.js",
       "background/background.js"
     ],
-    "persistent": false
+    "persistent": true
   },
   "browser_action": {
     "default_popup": "popup/popup.html"

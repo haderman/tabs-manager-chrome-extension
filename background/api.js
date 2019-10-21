@@ -1,9 +1,9 @@
 const api = {
   Workspaces: {
-    save: (name, tabs) =>
+    save: ({ name, key, color }, tabs) =>
       api.Workspaces.getNames()
         .then(names => ({
-          [name]: { tabs },
+          [name]: { tabs, name, key, color },
           __workspaces_names__: [name, ...names].filter(onlyUnique)
         }))
         .then(async data => {

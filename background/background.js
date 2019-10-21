@@ -64,6 +64,8 @@ function createMachine(states) {
   };
 }
 
+const appMachine = createMachine(appStates);
+
 let model = {
   idsOfWindowsOpened: [],
   machinesByWindowsID: {},
@@ -73,11 +75,11 @@ let model = {
 function setModel(newModelV2) {
   if (model !== newModelV2) {
     model = newModelV2;
-    broadcast(model);
+    if (appMachine.getCurrentState() === 'appLoaded') {
+      broadcast(model);
+    }
   }
 } 
-
-const appMachine = createMachine(appStates);
 
 init();
 
@@ -198,7 +200,7 @@ function handleOnMessages(request, sender, sendResponse) {
           ...model.modelsByWindowsID,
           [window.id]: {
             state: machine.getCurrentState(),
-            workspaceNameInUse: payload,
+            workspaceInUse: model.data[payload],
           }
         }
       });
@@ -209,6 +211,7 @@ function handleOnMessages(request, sender, sendResponse) {
     api.Tabs.getCurrentWindow()
       .then(tabs => api.Workspaces.save(payload, tabs))
       .then(dataSaved => {
+        console.log('data saved: ', dataSaved);
         machine.send('CREATE_WORKSPACE');
         const { data, modelsByWindowsID } = model;
         setModel({
@@ -218,7 +221,7 @@ function handleOnMessages(request, sender, sendResponse) {
             ...modelsByWindowsID,
             [window.id]: {
               state: machine.getCurrentState(),
-              workspaceNameInUse: payload
+              workspaceInUse: payload
             }
           }
         })
@@ -238,7 +241,7 @@ async function openWorkspace(workspaceName, window) {
   const getCurrentWorkspace = pipe(
     prop('modelsByWindowsID'),
     prop(window.id),
-    prop('workspaceNameInUse'),
+    prop('workspaceInUse'),
     defaultTo('last-sesion'),
   );
   

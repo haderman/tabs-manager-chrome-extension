@@ -5,7 +5,7 @@
 }
 
 body {
-  min-width: 280px;
+  min-width: 200px;
   min-height: 100px;
 }
 
@@ -24,7 +24,6 @@ fieldset {
 
 button {
   border: none;
-  opacity: 0.7;
 }
 
 button:hover {
@@ -77,8 +76,13 @@ img::before {
   width: inherit;  
 }
 
+/* POSITIONS */
+.relative { position: relative; }
+.absolute { position: absolute; }
+.zIndex-1 { z-index: 1; }
 
 /* BORDERS */
+.circle { border-radius: 50%; }
 .rounded { border-radius: 5px; }
 .border-s { border: 1px solid; }
 .border-m { border: 2px solid; }
@@ -90,23 +94,24 @@ img::before {
 /* PALETTE COLORS */
 /* the same order (top -> bottom) than https://colorhunt.co/palette/2763 */
 .background-transparent { background-color: transparent; } 
-.background-primary { background-color: #222831; }
+.background-primary { background-color: #212121; }
 .background-secondary { background-color: #393e46; }
 .background-contrast { background-color: #eeeeee; }
 .background-alternate { background-color: #00adb5; }
-.color-primary { color: #222831; }
+.color-primary { color: #212121; }
 .color-secondary { color: #393e46; }
 .color-contrast { color: #eeeeee; }
 .color-alternate { color: #00adb5; }
-.borderColor-primary { border-color: #222831; }
+.borderColor-primary { border-color: #212121; }
 .borderColor-secondary { border-color: #393e46; }
 .borderColor-contrast { border-color: #eeeeee; }
 .borderColor-alternate { border-color: #00adb5; }
-.borderBottomColor-primary { border-bottom-color: #222831; }
+.borderBottomColor-primary { border-bottom-color: #212121; }
 .borderBottomColor-secondary { border-bottom-color: #393e46; }
 .borderBottomColor-contrast { border-bottom-color: #eeeeee; }
 .borderBottomColor-alternate { border-bottom-color: #00adb5; }
-.beforeBackgroundColor-secondary:before { background-color: #393e46; } 
+.beforeBackgroundColor-secondary:before { background-color: #393e46; }
+
 /* STATES */
 .hover .show-in-hover { visibility: hidden; }
 .hover:hover .show-in-hover { visibility: visible; }
@@ -119,6 +124,7 @@ img::before {
 .fontSize-m { font-size: 18px; }
 .fontSize-l { font-size: 20px; }
 .fontSize-xl { font-size: 22px; }
+.fontStyle-italic { font-style: italic; }
 
 /* SPACES */
 .padding-none { padding: 0px; }
@@ -183,6 +189,7 @@ img::before {
 /* FLEXBOX */
 .flex { display: flex; }
 .inline-flex { display: inline-flex; }
+.flexDirection-col { flex-direction: column; }
 
 /* ALIGNING */ 
 .alignItems-center { align-items: center; }
@@ -201,6 +208,7 @@ img::before {
 .height-l { height: 150px; }
 .height-xl { height: 380px; }
 .height-fit-content { height: fit-content; }
+.full-width { width: 100%; }
 
 
 /* TEXTS */
@@ -212,4 +220,50 @@ img::before {
 .pointerEvents-none {
   pointer-events: none;
   cursor: not-allowed;
+  opacity: 0.5;
+}
+
+
+/* BACKDROP */
+.backdrop { position: relative; }
+.backdrop::before {
+  content: "";
+  width: inherit;
+  height: inherit;
+  border-radius: inherit;
+  background: black;
+  position: absolute;
+  opacity: 0.7;
+}
+
+/* COLORS */
+.background-green { background-color: #8bc34a; }
+.background-blue { background-color: #03a9f4; }
+.background-orange { background-color: #ff9800; }
+.background-purple { background-color: #9c27b0; }
+.background-yellow { background-color: #ffeb3b; }
+.background-red { background-color: #f44336; }
+.background-gray { background-color: #607d8b; }
+.background-cyan { background-color: #00bcd4; }
+.color-green { color: #8bc34a; }
+.color-blue { color: #03a9f4; }
+.color-orange { color: #ff9800; }
+.color-purple { color: #9c27b0; }
+.color-yellow { color: #ffeb3b; }
+.color-red { color: #f44336; }
+.color-gray { color: #607d8b; }
+.color-cyan { color: #00bcd4; }
+.borderColor-green { border-color: #8bc34a; }
+.borderColor-blue { border-color: #03a9f4; }
+.borderColor-orange { border-color: #ff9800; }
+.borderColor-purple { border-color: #9c27b0; }
+.borderColor-yellow { border-color: #ffeb3b; }
+.borderColor-red { border-color: #f44336; }
+.borderColor-gray { border-color: #607d8b; }
+.borderColor-cyan { border-color: #00bcd4; }
+
+
+
+.popupWindow {
+  width: 200px;
 }

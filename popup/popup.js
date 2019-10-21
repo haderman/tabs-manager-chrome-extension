@@ -1,3 +1,16 @@
+'use-strict';
+
+const COLORS = [
+  'green',
+  'blue',
+  'orange',
+  'purple',
+  'yellow',
+  'red',
+  'gray',
+  'cyan',
+];
+
 function createMachine(states, actions) {
   let currentState = states.initial;
   let currentContext = states.context;
@@ -79,7 +92,7 @@ const inputMachine = createMachine(inputStates, inputActions);
 // temporal
 let inputValue = '';
 
-window.onload = init;
+document.addEventListener('DOMContentLoaded', init);
 
 let model = {};
 function setModel(newModel) {
@@ -133,14 +146,11 @@ function view(model) {
       ),
       section({ className: 'background-primary' },
         model.state === 'started' ? viewForm(model.input) :
-        model.state === 'workspaceInUse' ? viewWorkspaceName(model.workspaceNameInUse) :
+        model.state === 'workspaceInUse' ? viewWorkspaceInUse(model.workspaceInUse) :
         null
       ),
       section({},
-        h3({ className: 'color-contrast' },
-          text('YOUR WORKSPACES')
-        ),
-        viewWorkspacesList(model.data.__workspaces_names__)
+        viewWorkspacesList(model.data)
       )
     )
   )
@@ -164,7 +174,14 @@ function viewForm({ state, value }) {
 
   const handleOnClick = () => {
     if (state === 'withText') {
-      sendMessage({ type: 'create_workspace', payload: value })
+      sendMessage({
+        type: 'create_workspace',
+        payload: {
+          name: value,
+          key: value.substr(0, 3).toUpperCase(),
+          color: getRandomItemFromArray(COLORS)
+        }
+      })
     }
   };
 
@@ -177,9 +194,11 @@ function viewForm({ state, value }) {
     updateInputModel();
   };
 
+  const autoFocus = dom => dom.focus();
+
   return (
     div({ className: 'grid gridTemplateCol-2 grid-col-gap-m' },
-      input({ className: inputStyle, onKeyUp: handleKeyUp }),
+      input({ className: inputStyle, onKeyUp: handleKeyUp, ref: autoFocus }),
       button({ className: buttonStyle, onClick: handleOnClick },
         text('Save')
       ),
@@ -187,7 +206,7 @@ function viewForm({ state, value }) {
   );
 }
 
-function viewWorkspaceName(name) {
+function viewWorkspaceInUse({ name }) {
   return (
     h1({ className: 'color-alternate textAlign-center' },
       text(name)
@@ -195,35 +214,55 @@ function viewWorkspaceName(name) {
   )
 }
 
-function viewWorkspacesList(workspacesList) {
-  const buttonStyle = classnames(
-    'padding-xs',
-    'marginLeft-m',
-    'fontSize-xs',
-    'rounded',
-    'border-s',
-    'borderColor-alternate',
-    'color-alternate',
-    'background-transparent'
-  );
-
-  const handleOnClick = workspaceName => () => {
+function viewWorkspacesList(data) {
+  const open = workspaceName => () => {
     sendMessage({ type: 'use_workspace', payload: workspaceName });
   };
 
   return (
-    ul({}, ...workspacesList.map(workspaceName => (
-      li({ className: 'padding-m color-contrast fontSize-s hover' },
-        span({ className: 'fontSize-m' },
-          text(workspaceName)
-        ),
-        span({ className: 'marginLeft-xl show-in-hover' },
-          button({ className: buttonStyle, onClick: handleOnClick(workspaceName) },
-            text('Open')
-          )
+    ul({}, ...data.__workspaces_names__.map(workspaceName => {
+      const workspace = data[workspaceName];
+      if (!workspace) return;
+
+      const buttonClassNames = classnames(
+        'padding-m',
+        'color-contrast',
+        'fontSize-s',
+        'hover',
+        'flex',
+        'justifyContent-center',
+        'background-transparent',
+        'full-width'
+      );
+    
+      const spanClassNames = classnames(
+        'flex',
+        'flexDirection-col',
+        'justifyContent-center',
+        'alignItems-center',
+        'circle',
+        'backdrop',
+        'width-m',
+        'height-m',
+        'border-l',
+        `borderColor-${workspace.color}`,
+        `background-${workspace.color}`,
+        'relative'
+      );
+
+      return (
+        button({ className: buttonClassNames, onClick: open(workspaceName) },
+          span({ className: spanClassNames },
+            h1({ className: 'zIndex-1' },
+              text(workspace.key.substr(0, 3).toUpperCase()),
+            ),
+            span({ className: 'fontSize-xs fontStyle-italic zIndex-1' },
+              text(workspaceName)
+            )
+          ),
         )
       )
-    )))
+    }))
   );
 }
 
@@ -234,4 +273,10 @@ function sendMessage(msg) {
   chrome.windows.getCurrent(window => {
     chrome.extension.sendMessage({ ...msg, window });
   });
+}
+
+function getRandomItemFromArray(arr) {
+  const lenght = arr.length - 1;
+  const randomIndex = Math.floor(Math.random() * lenght);
+  return arr[randomIndex];
 }

@@ -2,9 +2,25 @@
 <html>
   <head>
     <link href="../shared/base.css" rel="stylesheet" />
+    <style>
+      body {
+        width: 200px;
+        min-height: 100px;
+      }
+    </style>
   </head>
   <body class="windowPopup background-primary">
     <div id="root"></div>
+    <svg class="height-none">
+      <defs>
+        <filter id="backdrop-filter-blur">
+          <!-- <feGaussianBlur in="sourceGraphic" stdDeviation="10 10" result="blur" /> -->
+        </filter>
+        <filter id="filter-shadow">
+          <feDropShadow dx="0.2" dy="0.4" stdDeviation="10"/>
+        </filter>
+      </defs>
+    </svg>
     <script src="../shared/render.js"></script>
     <script src="../shared/fp.js"></script>
     <script src="popup.js"></script>

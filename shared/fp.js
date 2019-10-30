@@ -96,3 +96,6 @@ function set(path = '', value) {
 function defaultTo(defaultValue) {
   return value => value === null || value === undefined ? defaultValue : value;
 }
+function length(arr = []) {
+  return Array.isArray(arr) ? arr.length : 0;
+}

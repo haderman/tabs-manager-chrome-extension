@@ -141,10 +141,10 @@ function view(model) {
   console.log('View: ', model);
   return (
     div({},
-      div({ className: 'color-contrast' },
-        text(model.input.state)
-      ),
-      section({ className: 'background-primary' },
+      // div({ className: 'color-contrast' },
+      //   text(model.input.state)
+      // ),
+      section({ className: 'background-transparent zIndex-2 sticky' },
         model.state === 'started' ? viewForm(model.input) :
         model.state === 'workspaceInUse' ? viewWorkspaceInUse(model.workspaceInUse) :
         null
@@ -206,12 +206,26 @@ function viewForm({ state, value }) {
   );
 }
 
-function viewWorkspaceInUse({ name }) {
+function viewWorkspaceInUse({ name, color }) {
   return (
-    h1({ className: 'color-alternate textAlign-center' },
-      text(name)
+    div({},
+      div({ className: 'absolute zIndex-1 backdrop-filter-blur support-backdrop-filter-header' }),
+      svg({ viewBox: '5 105 170 100', class: 'relative zIndex-2' },
+        svg.path(
+          { class: `fill-${color} stroke-${color}`,
+            fill_opacity: .2,
+            stroke_width: 8,
+            d: 'M0,0C0,0,0,171.14385,0,171.14385C24.580441,186.61523,55.897012,195.90157,90,195.90157C124.10299,195.90157,155.41956,186.61523,180,171.14385C180,171.14385,180,0,180,0C180,0,0,0,0,0C0,0,0,0,0,0',
+          },
+        )
+      ),
+      div({ className: 'absolute top-0 left-0 zIndex-3 full-width full-height flex justifyContent-center' },
+        h1({ className: `color-contrast textStroke-xs textShadow-${color}` },
+          text(name)
+        )
+      )
     )
-  )
+  ); 
 }
 
 function viewWorkspacesList(data) {
@@ -247,18 +261,19 @@ function viewWorkspacesList(data) {
         'border-l',
         `borderColor-${workspace.color}`,
         `background-${workspace.color}`,
-        'relative'
+        'relative',
+        'hover-boxShadow'
       );
 
       return (
         button({ className: buttonClassNames, onClick: open(workspaceName) },
           span({ className: spanClassNames },
-            h1({ className: 'zIndex-1' },
+            h2({ className: 'zIndex-1' },
               text(workspace.key.substr(0, 3).toUpperCase()),
             ),
             span({ className: 'fontSize-xs fontStyle-italic zIndex-1' },
-              text(workspaceName)
-            )
+              text(workspaceName),
+            ),
           ),
         )
       )

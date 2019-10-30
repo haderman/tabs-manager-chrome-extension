@@ -10,7 +10,6 @@ body {
 }
 
 section {
-  padding: 15px;
   margin-bottom: 10px;
 }
 
@@ -43,13 +42,12 @@ button:active {
 }
 
 h1 {
-  font-size: 36px;
+  font-size: 48px;
   font-weight: 400;
 }
 
 h2 {
-  font-size: 30px;
-  margin: 10px 0px;
+  font-size: 36px;
 }
 
 h3 {
@@ -76,10 +74,18 @@ img::before {
   width: inherit;  
 }
 
+.display-none {
+  display: none;
+}
+
 /* POSITIONS */
 .relative { position: relative; }
 .absolute { position: absolute; }
 .zIndex-1 { z-index: 1; }
+.zIndex-2 { z-index: 2; }
+.zIndex-3 { z-index: 3; }
+.top-0 { top: 0; }
+.left-0 { left: 0; }
 
 /* BORDERS */
 .circle { border-radius: 50%; }
@@ -125,6 +131,7 @@ img::before {
 .fontSize-l { font-size: 20px; }
 .fontSize-xl { font-size: 22px; }
 .fontStyle-italic { font-style: italic; }
+.textStroke-xs { -webkit-text-stroke: 1px black; }
 
 /* SPACES */
 .padding-none { padding: 0px; }
@@ -202,6 +209,7 @@ img::before {
 .width-m { width: 100px; }
 .width-l { width: 150px; }
 .width-xl { width: 380px ;}
+.height-none { height: 0px ;}
 .height-xs { height: 25px; }
 .height-s { height: 50px; }
 .height-m { height: 100px; }
@@ -209,13 +217,15 @@ img::before {
 .height-xl { height: 380px; }
 .height-fit-content { height: fit-content; }
 .full-width { width: 100%; }
-
+.full-height { height: 100%; }
+.maxHeight-400 { max-height: 400px; }
 
 /* TEXTS */
 .ellipsis { text-overflow: ellipsis; }
 .whiteSpace-nowrap { white-space: nowrap; }
 
 .overflowHidden { overflow: hidden; }
+.overflow-auto { overflow: auto; }
 
 .pointerEvents-none {
   pointer-events: none;
@@ -223,17 +233,18 @@ img::before {
   opacity: 0.5;
 }
 
-
-/* BACKDROP */
-.backdrop { position: relative; }
-.backdrop::before {
-  content: "";
-  width: inherit;
-  height: inherit;
-  border-radius: inherit;
-  background: black;
-  position: absolute;
-  opacity: 0.7;
+/* https://codepen.io/haderman/pen/GRRrxed?editors=1100 */
+.scroll-shadow {
+  background:
+    linear-gradient(#212121 30%, hsla(0,0%,100%, 0)),
+    linear-gradient(hsla(0,0%,100%,0) 10px, #212121 70%) bottom,
+    radial-gradient(at top, rgba(51,51,153, 1) 0%, transparent 70% ),
+    radial-gradient(at bottom, rgba(51,51,153, 1) 40%, transparent 70%) bottom;
+	background-repeat: no-repeat;
+	background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
+	
+	/* Opera doesn’t support this in the shorthand */
+	background-attachment: local, local, scroll, scroll;
 }
 
 /* COLORS */
@@ -261,9 +272,96 @@ img::before {
 .borderColor-red { border-color: #f44336; }
 .borderColor-gray { border-color: #607d8b; }
 .borderColor-cyan { border-color: #00bcd4; }
-
+.fill-green { fill: #8bc34a; }
+.fill-blue { fill: #03a9f4; }
+.fill-orange { fill: #ff9800; }
+.fill-purple { fill: #9c27b0; }
+.fill-yellow { fill: #ffeb3b; }
+.fill-red { fill: #f44336; }
+.fill-gray { fill: #607d8b; }
+.fill-cyan { fill: #00bcd4; }
+.path-fill-green path { fill: #8bc34a; }
+.path-fill-blue path { fill: #03a9f4; }
+.path-fill-orange path { fill: #ff9800; }
+.path-fill-purple svg { fill: #9c27b0; }
+.path-fill-yellow path { fill: #ffeb3b; }
+.path-fill-red path { fill: #f44336; }
+.path-fill-gray path { fill: #607d8b; }
+.path-fill-cyan path { fill: #00bcd4; }
+.stroke-green {  stroke: #8bc34a; }
+.stroke-blue {  stroke: #03a9f4; }
+.stroke-orange {  stroke: #ff9800; }
+.stroke-purple {  stroke: #9c27b0; }
+.stroke-yellow {  stroke: #ffeb3b; }
+.stroke-red {  stroke: #f44336; }
+.stroke-gray {  stroke: #607d8b; }
+.stroke-cyan {  stroke: #00bcd4; }
+.textShadow-green { text-shadow: 1px 1px 5px #8bc34a; }
+.textShadow-blue { text-shadow: 1px 1px 5px #03a9f4; }
+.textShadow-orange { text-shadow: 1px 1px 5px #ff9800; }
+.textShadow-purple {  text-shadow: 1px 1px 5px #9c27b0; }
+.textShadow-yellow { text-shadow: 1px 1px 5px #ffeb3b; }
+.textShadow-red { text-shadow: 1px 1px 5px #f44336; }
+.textShadow-gray { text-shadow: 1px 1px 5px #607d8b; }
+.textShadow-cyan { text-shadow: 1px 1px 5px #00bcd4; }
 
 
 .popupWindow {
   width: 200px;
+}
+
+/* BACKDROPS AND OVERLAYS */
+.backdrop { position: relative; }
+.backdrop::before {
+  content: "";
+  width: inherit;
+  height: inherit;
+  border-radius: inherit;
+  background: black;
+  position: absolute;
+  opacity: 0.7;
+}
+
+.blur {
+  position: relative;
+}
+.blur::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: ghostwhite;
+  filter: blur(7px);
+  opacity: 0.4;
+}
+
+.hover-boxShadow:hover {
+  box-shadow: 0px 0px 24px 1px dimgrey;
+}
+
+.sticky {
+  position: sticky;
+  top: 0;
+}
+
+.filter-blur {
+  filter: blur(5px);
+}
+
+.backdrop-filter-blur {
+  backdrop-filter: blur(10px);
+}
+
+.filter-shadow {
+  filter: url(#filter-shadow);
+}
+
+.support-backdrop-filter-header {
+  height: 105px;
+  width: 160px;
+  left: 20px;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
 }

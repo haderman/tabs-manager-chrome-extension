@@ -242,7 +242,11 @@ async function openWorkspace(workspaceName, window) {
     prop('modelsByWindowsID'),
     prop(window.id),
     prop('workspaceInUse'),
-    defaultTo('last-sesion'),
+    defaultTo({
+      name: 'last-sesion',
+      key: 'las',
+      color: 'gray'
+    }),
   );
   
   const currentlyOpenTabs = await api.Tabs.get(window.id);
@@ -261,7 +265,7 @@ async function openWorkspace(workspaceName, window) {
     __workspaces_names__,
     ...rest
   } = await api.Workspaces.save(getCurrentWorkspace(model), currentlyOpenTabs);
-
+  
   return rest;
 }
 

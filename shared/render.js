@@ -1,5 +1,16 @@
 'use strinct';
 
+const svgNS = 'http://www.w3.org/2000/svg';
+const SVG_ELEMENTS = {
+  svg: true,
+  circle: true,
+  path: true,
+  rect: true,
+  line: true,
+  g: true,
+  feGaussianBlur: true,
+};
+
 // source: https://github.com/pomber/didact
 // https://blog.atulr.com/react-custom-renderer-1/
 
@@ -68,7 +79,13 @@ function instantiate(element) {
   if (isDomElement) {
     // Create DOM element
     const isTextElement = type === 'text';
-    const dom = isTextElement ? document.createTextNode('') : document.createElement(type);
+    const isSvgElement = SVG_ELEMENTS[type];
+
+    const dom = isTextElement
+      ? document.createTextNode('')
+      : isSvgElement ? document.createElementNS(svgNS, type)
+      : document.createElement(type);
+
     updateDomProperties(dom, [], props);
       
     // Instantiate and append children
@@ -107,7 +124,7 @@ function createPublicInstance(element, internalInstance) {
 
 function updateDomProperties(dom, prevProps, nextProps) {
   const isEvent = name => name.startsWith('on');
-  const isAttribute = name => !isEvent(name) && name != 'children';
+  const isAttribute = name => !isEvent(name) && name !== 'children';
 
   // Remove event listeners
   Object.keys(prevProps).filter(isEvent).forEach(name => {
@@ -122,7 +139,13 @@ function updateDomProperties(dom, prevProps, nextProps) {
 
   // Set attributes
   Object.keys(nextProps).filter(isAttribute).forEach(name => {
-    dom[name] = nextProps[name];
+    const isSvgElement = SVG_ELEMENTS[dom.tagName];
+    if (isSvgElement) {
+      const nameNS = name.replace('_', '-');
+      dom.setAttributeNS(null, nameNS, nextProps[name]);
+    } else {
+      dom[name] = nextProps[name];
+    }
   });
 
   // Add event listeners
@@ -172,3 +195,14 @@ const h4 = createElementFactory('h4');
 const h5 = createElementFactory('h5');
 const p = createElementFactory('p');
 const input = createElementFactory('input');
+const canvas = createElementFactory('canvas');
+const object = createElementFactory('object');
+
+const svg = createElementFactory('svg');
+svg.circle = createElementFactory('circle');
+svg.path = createElementFactory('path');
+svg.rect = createElementFactory('rect');
+svg.line = createElementFactory('line');
+svg.filter = createElementFactory('filter');
+svg.g = createElementFactory('g');
+svg.feGaussianBlur = createElementFactory('feGaussianBlur');

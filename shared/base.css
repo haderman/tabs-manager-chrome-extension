@@ -100,19 +100,19 @@ img::before {
 /* PALETTE COLORS */
 /* the same order (top -> bottom) than https://colorhunt.co/palette/2763 */
 .background-transparent { background-color: transparent; } 
-.background-primary { background-color: #212121; }
+.background-primary { background-color: #1b1818; }
 .background-secondary { background-color: #393e46; }
 .background-contrast { background-color: #eeeeee; }
 .background-alternate { background-color: #00adb5; }
-.color-primary { color: #212121; }
+.color-primary { color: #1b1818; }
 .color-secondary { color: #393e46; }
 .color-contrast { color: #eeeeee; }
 .color-alternate { color: #00adb5; }
-.borderColor-primary { border-color: #212121; }
+.borderColor-primary { border-color: #1b1818; }
 .borderColor-secondary { border-color: #393e46; }
 .borderColor-contrast { border-color: #eeeeee; }
 .borderColor-alternate { border-color: #00adb5; }
-.borderBottomColor-primary { border-bottom-color: #212121; }
+.borderBottomColor-primary { border-bottom-color: #1b1818; }
 .borderBottomColor-secondary { border-bottom-color: #393e46; }
 .borderBottomColor-contrast { border-bottom-color: #eeeeee; }
 .borderBottomColor-alternate { border-bottom-color: #00adb5; }
@@ -236,8 +236,8 @@ img::before {
 /* https://codepen.io/haderman/pen/GRRrxed?editors=1100 */
 .scroll-shadow {
   background:
-    linear-gradient(#212121 30%, hsla(0,0%,100%, 0)),
-    linear-gradient(hsla(0,0%,100%,0) 10px, #212121 70%) bottom,
+    linear-gradient(#1b1818 30%, hsla(0,0%,100%, 0)),
+    linear-gradient(hsla(0,0%,100%,0) 10px, #1b1818 70%) bottom,
     radial-gradient(at top, rgba(51,51,153, 1) 0%, transparent 70% ),
     radial-gradient(at bottom, rgba(51,51,153, 1) 40%, transparent 70%) bottom;
 	background-repeat: no-repeat;
@@ -280,14 +280,7 @@ img::before {
 .fill-red { fill: #f44336; }
 .fill-gray { fill: #607d8b; }
 .fill-cyan { fill: #00bcd4; }
-.path-fill-green path { fill: #8bc34a; }
-.path-fill-blue path { fill: #03a9f4; }
-.path-fill-orange path { fill: #ff9800; }
-.path-fill-purple svg { fill: #9c27b0; }
-.path-fill-yellow path { fill: #ffeb3b; }
-.path-fill-red path { fill: #f44336; }
-.path-fill-gray path { fill: #607d8b; }
-.path-fill-cyan path { fill: #00bcd4; }
+.fill-black { fill: #000000; }
 .stroke-green {  stroke: #8bc34a; }
 .stroke-blue {  stroke: #03a9f4; }
 .stroke-orange {  stroke: #ff9800; }
@@ -296,6 +289,7 @@ img::before {
 .stroke-red {  stroke: #f44336; }
 .stroke-gray {  stroke: #607d8b; }
 .stroke-cyan {  stroke: #00bcd4; }
+.stroke-black { stroke: #000000; }
 .textShadow-green { text-shadow: 1px 1px 5px #8bc34a; }
 .textShadow-blue { text-shadow: 1px 1px 5px #03a9f4; }
 .textShadow-orange { text-shadow: 1px 1px 5px #ff9800; }
@@ -362,6 +356,6 @@ img::before {
   height: 105px;
   width: 160px;
   left: 20px;
-  border-bottom-left-radius: 20px;
-  border-bottom-right-radius: 20px;
+  border-bottom-left-radius: 36px;
+  border-bottom-right-radius: 36px;
 }

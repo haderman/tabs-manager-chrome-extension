@@ -8,7 +8,6 @@ const SVG_ELEMENTS = {
   rect: true,
   line: true,
   g: true,
-  feGaussianBlur: true,
 };
 
 // source: https://github.com/pomber/didact

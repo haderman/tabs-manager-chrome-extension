@@ -141,9 +141,6 @@ function view(model) {
   console.log('View: ', model);
   return (
     div({},
-      // div({ className: 'color-contrast' },
-      //   text(model.input.state)
-      // ),
       section({ className: 'background-transparent zIndex-2 sticky' },
         model.state === 'started' ? viewForm(model.input) :
         model.state === 'workspaceInUse' ? viewWorkspaceInUse(model.workspaceInUse) :
@@ -197,11 +194,14 @@ function viewForm({ state, value }) {
   const autoFocus = dom => dom.focus();
 
   return (
-    div({ className: 'grid gridTemplateCol-2 grid-col-gap-m' },
-      input({ className: inputStyle, onKeyUp: handleKeyUp, ref: autoFocus }),
-      button({ className: buttonStyle, onClick: handleOnClick },
-        text('Save')
-      ),
+    div({ className: 'relative' },
+      viewHeader({ color: 'black' }),
+      div({ className: 'grid gridTemplateCol-2 grid-col-gap-m absolute top-0 left-0 zIndex-3' },
+        input({ className: inputStyle, onKeyUp: handleKeyUp, ref: autoFocus }),
+        button({ className: buttonStyle, onClick: handleOnClick },
+          text('Save')
+        ),
+      )
     )
   );
 }
@@ -209,16 +209,7 @@ function viewForm({ state, value }) {
 function viewWorkspaceInUse({ name, color }) {
   return (
     div({},
-      div({ className: 'absolute zIndex-1 backdrop-filter-blur support-backdrop-filter-header' }),
-      svg({ viewBox: '5 105 170 100', class: 'relative zIndex-2' },
-        svg.path(
-          { class: `fill-${color} stroke-${color}`,
-            fill_opacity: .2,
-            stroke_width: 8,
-            d: 'M0,0C0,0,0,171.14385,0,171.14385C24.580441,186.61523,55.897012,195.90157,90,195.90157C124.10299,195.90157,155.41956,186.61523,180,171.14385C180,171.14385,180,0,180,0C180,0,0,0,0,0C0,0,0,0,0,0',
-          },
-        )
-      ),
+      viewHeader({ color }),
       div({ className: 'absolute top-0 left-0 zIndex-3 full-width full-height flex justifyContent-center' },
         h1({ className: `color-contrast textStroke-xs textShadow-${color}` },
           text(name)
@@ -281,6 +272,28 @@ function viewWorkspacesList(data) {
   );
 }
 
+function viewHeader(config) {
+  const {
+    color,
+    fillOpacity = .2,
+    strokeWidth = 5,
+  } = config;
+
+  return (
+    div({},
+      div({ className: 'absolute zIndex-1 backdrop-filter-blur support-backdrop-filter-header' }),
+      svg({ viewBox: '5 105 170 100', class: 'relative zIndex-2' },
+        svg.path(
+          { class: `fill-${color} stroke-${color}`,
+            fill_opacity: fillOpacity,
+            stroke_width: strokeWidth,
+            d: 'M0,0C0,0,0,171.14385,0,171.14385C24.580441,186.61523,55.897012,195.90157,90,195.90157C124.10299,195.90157,155.41956,186.61523,180,171.14385C180,171.14385,180,0,180,0C180,0,0,0,0,0C0,0,0,0,0,0',
+          },
+        )
+      )
+    )
+  );
+}
 
 // HELPERS
 

@@ -25,6 +25,10 @@ function onLoad() {
         }
       }
     );
+
+    app.ports.openWorkspace.subscribe(function (workspaceName) {
+      chrome.extension.sendMessage({ type: 'use_workspace', payload: workspaceName, window })
+    });
   }); 
 }
 

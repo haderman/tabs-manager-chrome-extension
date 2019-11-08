@@ -93,6 +93,7 @@ init flags =
 
 type Msg
     = ReceivedDataFromJS (Result Decode.Error Data)
+    | OpenWorkspace String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -106,6 +107,9 @@ update msg model =
                 Err error ->
                     ( { model | test = "error" }, Cmd.none )
 
+        OpenWorkspace name ->
+            ( model, Ports.openWorkspace name )
+
 
 
 -- VIEW
@@ -113,18 +117,71 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div [ class "background-alternate" ]
-        [ text <| "lista de workspaces -> " ++ model.test
-        , model.data.workspacesNames
-            |> List.map viewWorkspaceName
-            |> ul []
+    div [ class "grid gridTemplateCol-repeat-xl gridGap-m padding-m justifyContent-center" ]
+        (model.data.workspacesNames
+            |> List.map
+                (\name ->
+                    Dict.get name model.data.workspacesInfo
+                )
+            |> List.map
+                (\maybeWorkspace ->
+                    case maybeWorkspace of
+                        Just workspace ->
+                            viewWorkspace workspace
+
+                        Nothing ->
+                            text ""
+                )
+        )
+
+
+viewWorkspace : Workspace -> Html Msg
+viewWorkspace { name, tabs } =
+    let
+        header =
+            div [ class "flex alignItems-center justifyContent-space-between" ]
+                [ h3 [ class "color-alternate marginTop-none" ]
+                    [ text name ]
+                , button
+                    [ class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
+                    , onClick <| OpenWorkspace name
+                    ]
+                    [ text "Open" ]
+                ]
+
+        divider =
+            div [ class "marginBottom-m borderBottom-s borderColor-secondary" ]
+                []
+
+        body =
+            div [] <| List.map viewTab tabs
+    in
+    div [ class "padding-m border-s rounded borderColor-secondary width-xl height-fit-content" ]
+        [ header
+        , divider
+        , body
         ]
 
 
-viewWorkspaceName : String -> Html Msg
-viewWorkspaceName name =
-    li []
-        [ text name
+viewTab : Tab -> Html Msg
+viewTab { title, url, icon } =
+    let
+        srcIcon =
+            case icon of
+                Just value ->
+                    value
+
+                Nothing ->
+                    ""
+    in
+    div [ class "flex alignItems-center marginBottom-s" ]
+        [ img
+            [ src srcIcon
+            , class "width-xs height-xs beforeBackgroundColor-secondary marginRight-s"
+            ]
+            []
+        , span [ class "ellipsis overflowHidden whiteSpace-nowrap color-contrast" ]
+            [ text title ]
         ]
 
 
@@ -175,9 +232,9 @@ workspaceInUseDecoder =
 workspaceDecoder : Decoder Workspace
 workspaceDecoder =
     Decode.map4 Workspace
-        (Decode.field "name" Decode.string)
         (Decode.field "color" Decode.string)
         (Decode.field "key" Decode.string)
+        (Decode.field "name" Decode.string)
         (Decode.field "tabs" tabListDecoder)
 
 

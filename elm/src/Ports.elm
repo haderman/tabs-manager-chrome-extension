@@ -1,6 +1,16 @@
-port module Ports exposing (receivedDataFromJS)
+port module Ports exposing
+    ( openWorkspace
+    , receivedDataFromJS
+    )
 
 import Json.Decode exposing (..)
+
+
+
+-- Output
+
+
+port openWorkspace : String -> Cmd msg
 
 
 

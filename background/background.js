@@ -30,12 +30,14 @@ const windowStates = {
   started: {
     on: {
       OPEN_WORKSPACE: 'workspaceInUse',
-      CREATE_WORKSPACE: 'workspaceInUse'
+      CREATE_WORKSPACE: 'workspaceInUse',
+      UPDATE_WORKSPACE: 'started'
     }
   },
   workspaceInUse: {
     on: {
-      OPEN_WORKSPACE: 'workspaceInUse'
+      OPEN_WORKSPACE: 'workspaceInUse',
+      UPDATE_WORKSPACE: 'workspaceInUse'
     }
   }
 };
@@ -116,13 +118,13 @@ async function init() {
 
 async function loadData() {
   // get and prepeare data
-  const names = await api.Workspaces.getNames();
-  const tabs = await Promise.all(names.map(api.Workspaces.get));
-  const result = zipObject(names, tabs);
+  const ids = await api.Workspaces.getIds();
+  const tabs = await Promise.all(ids.map(api.Workspaces.get));
+  const result = zipObject(ids, tabs);
 
   return {
     ...result,
-    __workspaces_names__: names,
+    __workspaces_ids__: ids,
   };
 }
 
@@ -188,7 +190,7 @@ function handleOnMessages(request, sender, sendResponse) {
   if (!machine) return;
 
   if (type === 'use_workspace' && machine.isEventAvailable('OPEN_WORKSPACE')) {
-    openWorkspace(payload, window).then(prevWorkspaceData => {
+    openWorkspace(payload, window).then(([id, prevWorkspaceData]) => {
       machine.send('OPEN_WORKSPACE');
       setModel({
         ...model,
@@ -200,7 +202,7 @@ function handleOnMessages(request, sender, sendResponse) {
           ...model.modelsByWindowsID,
           [window.id]: {
             state: machine.getCurrentState(),
-            workspaceInUse: model.data[payload],
+            workspaceInUse: id,
           }
         }
       });
@@ -210,7 +212,7 @@ function handleOnMessages(request, sender, sendResponse) {
   if (type === 'create_workspace' && machine.isEventAvailable('CREATE_WORKSPACE')) {
     api.Tabs.getCurrentWindow()
       .then(tabs => api.Workspaces.save(payload, tabs))
-      .then(dataSaved => {
+      .then(([id, dataSaved]) => {
         console.log('data saved: ', dataSaved);
         machine.send('CREATE_WORKSPACE');
         const { data, modelsByWindowsID } = model;
@@ -221,11 +223,30 @@ function handleOnMessages(request, sender, sendResponse) {
             ...modelsByWindowsID,
             [window.id]: {
               state: machine.getCurrentState(),
-              workspaceInUse: payload
+              workspaceInUse: id
             }
           }
         })
       });
+  }
+
+  if (type === 'update_workspace' && machine.isEventAvailable('UPDATE_WORKSPACE')) {
+    const { tabs, ...workspace } = payload;
+    api.Workspaces.update(workspace, tabs).then(([id, dataSaved]) => {
+      machine.send('UPDATE_WORKSPACE');
+      const { data, modelsByWindowsID } = model;
+        setModel({
+          ...model,
+          data: { ...data, ...dataSaved },
+          modelsByWindowsID: {
+            ...modelsByWindowsID,
+            [window.id]: {
+              state: machine.getCurrentState(),
+              workspaceInUse: id
+            }
+          }
+        })
+    });
   }
 }
 
@@ -237,20 +258,22 @@ function broadcast(model) {
 }
 
 
-async function openWorkspace(workspaceName, window) {
-  const getCurrentWorkspace = pipe(
-    prop('modelsByWindowsID'),
-    prop(window.id),
-    prop('workspaceInUse'),
-    defaultTo({
+async function openWorkspace(workspaceId, window) {
+  const getWorkspaceInUse = compose(prop('workspaceInUse'), prop(window.id), prop('modelsByWindowsID'));
+  const workspaceToSave = model => {
+    const workspaceInUse = getWorkspaceInUse(model);
+    if (workspaceInUse) {
+      return model.data[workspaceInUse];
+    }
+    return {
       name: 'last-sesion',
       key: 'las',
       color: 'gray'
-    }),
-  );
+    };
+  }
   
   const currentlyOpenTabs = await api.Tabs.get(window.id);
-  const tabsToOpen = await api.Workspaces.get(workspaceName)
+  const tabsToOpen = await api.Workspaces.get(workspaceId)
     .then(prop('tabs'))
     .then(map(prop('url')))
     .then(map(url => ({ windowId: window.id, url })))
@@ -261,12 +284,10 @@ async function openWorkspace(workspaceName, window) {
   await api.Tabs.create(tabsToOpen);
   await api.Tabs.remove(currentlyOpenTabs.map(prop('id')));
   
-  const {
-    __workspaces_names__,
-    ...rest
-  } = await api.Workspaces.save(getCurrentWorkspace(model), currentlyOpenTabs);
-  
-  return rest;
+  const [id, data] = await api.Workspaces.save(workspaceToSave(model), currentlyOpenTabs);
+  const { __workspaces_ids__, ...rest } = data;
+
+  return [workspaceId, rest];
 }
 
 

@@ -16,24 +16,37 @@ const api = {
      * @param {Array.<Tab>} tabs
      * @returns {Object} data saved
      */
-    save: ({ name, key, color }, tabs) =>
-      api.Workspaces.getNames()
-        .then(names => ({
-          [name]: { tabs, name, key, color },
-          __workspaces_names__: [name, ...names].filter(onlyUnique)
-        }))
-        .then(async data => {
+    save: ({ id, name, key, color }, tabs) =>
+      api.Workspaces.getIds()
+        .then(ids => {
+          const id_ = id || generateId(ids);
+          return [
+            id_, 
+            {
+              [id_]: { tabs, name, key, color, id: id_ },
+              __workspaces_ids__: [id_, ...ids].filter(onlyUnique)
+            }
+          ]
+        })
+        .then(async ([id, data]) => {
           await chromePromise.storage.sync.set(data);
-          return data;
+          return [id, data];
         }),
+    update: async ({ id, name, key, color }, tabs) => {
+      if (!id) return;
+      const data = {
+        [id]: { tabs, name, key, color, id: id }
+      };
+      await chromePromise.storage.sync.set(data);
+      return [id, data];
+    },
+    get: id =>
+      chromePromise.storage.sync.get(id.toString())
+        .then(prop(id)),
 
-    get: name =>
-      chromePromise.storage.sync.get(name)
-        .then(prop(name)),
-
-    getNames: () =>
-      chromePromise.storage.sync.get('__workspaces_names__')
-        .then(prop('__workspaces_names__'))
+    getIds: () =>
+      chromePromise.storage.sync.get('__workspaces_ids__')
+        .then(prop('__workspaces_ids__'))
         .then(defaultTo([])),
   },
   Tabs: {
@@ -58,3 +71,8 @@ const api = {
       chromePromise.windows.getAll()
   }
 };
+
+function generateId(idsInUse = []) {
+  if (idsInUse.length === 0) return 1;
+  else return Math.max(...idsInUse) + 1;
+}

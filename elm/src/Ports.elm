@@ -1,20 +1,25 @@
 port module Ports exposing
     ( openWorkspace
     , receivedDataFromJS
+    , updateWorkspace
     )
 
-import Json.Decode exposing (..)
+import Json.Decode as D
+import Json.Encode as E
 
 
 
 -- Output
 
 
-port openWorkspace : String -> Cmd msg
+port openWorkspace : Int -> Cmd msg
+
+
+port updateWorkspace : E.Value -> Cmd msg
 
 
 
 -- Input
 
 
-port receivedDataFromJS : (Json.Decode.Value -> msg) -> Sub msg
+port receivedDataFromJS : (D.Value -> msg) -> Sub msg

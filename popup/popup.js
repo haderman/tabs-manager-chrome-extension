@@ -142,8 +142,8 @@ function view(model) {
   return (
     div({},
       section({ className: 'background-transparent zIndex-2 sticky' },
-        model.state === 'started' ? viewForm(model.input) :
-        model.state === 'workspaceInUse' ? viewWorkspaceInUse(model.workspaceInUse) :
+        model.state === 'started' ? viewForm(model.input, model.data) :
+        model.state === 'workspaceInUse' ? viewWorkspaceInUse(model.data[model.workspaceInUse]) :
         null
       ),
       section({},
@@ -153,7 +153,7 @@ function view(model) {
   )
 }
 
-function viewForm({ state, value }) {
+function viewForm({ state, value }, data) {
   const buttonStyle = classnames(
     'background-alternate',
     'color-contrast',
@@ -220,13 +220,13 @@ function viewWorkspaceInUse({ name, color }) {
 }
 
 function viewWorkspacesList(data) {
-  const open = workspaceName => () => {
-    sendMessage({ type: 'use_workspace', payload: workspaceName });
+  const open = workspaceId => () => {
+    sendMessage({ type: 'use_workspace', payload: workspaceId });
   };
 
   return (
-    ul({}, ...data.__workspaces_names__.map(workspaceName => {
-      const workspace = data[workspaceName];
+    ul({}, ...data.__workspaces_ids__.map(workspaceId => {
+      const workspace = data[workspaceId];
       if (!workspace) return;
 
       const buttonClassNames = classnames(
@@ -257,13 +257,13 @@ function viewWorkspacesList(data) {
       );
 
       return (
-        button({ className: buttonClassNames, onClick: open(workspaceName) },
+        button({ className: buttonClassNames, onClick: open(workspace.id) },
           span({ className: spanClassNames },
             h2({ className: 'zIndex-1' },
               text(workspace.key.substr(0, 3).toUpperCase()),
             ),
             span({ className: 'fontSize-xs fontStyle-italic zIndex-1' },
-              text(workspaceName),
+              text(workspace.name),
             ),
           ),
         )

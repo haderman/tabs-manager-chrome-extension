@@ -120,7 +120,7 @@ type Msg
     | OpenWorkspace Int
     | ChangeProxyName Int String
     | ChangeProxyColor Int Color
-    | ChangeProxyState Int WorkspaceState
+    | EditWorkspace Int
     | UpdateWorkspace WorkspaceProxy
 
 
@@ -159,10 +159,19 @@ update msg model =
             , Cmd.none
             )
 
-        ChangeProxyState workspaceId state ->
+        EditWorkspace workspaceId ->
             ( { model
                 | workspacesProxy =
-                    Dict.update workspaceId (updateProxyState state) model.workspacesProxy
+                    model.data.workspacesInfo
+                        |> composeWorkspacesProxy model.data.workspacesIds
+                        |> Dict.map
+                            (\id proxy ->
+                                if workspaceId == id then
+                                    { proxy | state = Edition }
+
+                                else
+                                    proxy
+                            )
               }
             , Cmd.none
             )
@@ -234,23 +243,48 @@ composeWorkspacesProxy workspacesIds workspacesInfos =
 
 view : Model -> Html Msg
 view model =
-    div [ class "grid gridTemplateCol-repeat-xl gridGap-m padding-m justifyContent-center" ]
-        (model.data.workspacesIds
-            |> List.map
-                (\name ->
-                    Dict.get name model.data.workspacesInfo
-                )
-            |> List.map
-                (\maybeWorkspace ->
-                    case maybeWorkspace of
-                        Just workspace ->
-                            Dict.get workspace.id model.workspacesProxy
-                                |> viewWorkspace workspace
+    div []
+        [ viewHeader model
+        , div [ class "grid gridTemplateCol-repeat-xl gridGap-m padding-m justifyContent-center" ]
+            (model.data.workspacesIds
+                |> List.map
+                    (\name ->
+                        Dict.get name model.data.workspacesInfo
+                    )
+                |> List.map
+                    (\maybeWorkspace ->
+                        case maybeWorkspace of
+                            Just workspace ->
+                                Dict.get workspace.id model.workspacesProxy
+                                    |> viewWorkspace workspace
 
-                        Nothing ->
-                            text ""
-                )
-        )
+                            Nothing ->
+                                text ""
+                    )
+            )
+        ]
+
+
+viewHeader : Model -> Html Msg
+viewHeader model =
+    let
+        viewName id =
+            case Dict.get id model.data.workspacesInfo of
+                Just { name, color } ->
+                    h2 [ class <| "color-" ++ fromColorToString color ]
+                        [ text name ]
+
+                Nothing ->
+                    text ""
+    in
+    div [ class "full-width height-s background-transparent sticky backdrop-filter-blur boxShadow-black zIndex-4 marginBottom-xl flex alignItems-center justifyContent-center" ]
+        [ case model.data.state of
+            WorkspaceInUse id ->
+                viewName id
+
+            _ ->
+                text ""
+        ]
 
 
 viewWorkspace : Workspace -> Maybe WorkspaceProxy -> Html Msg
@@ -258,12 +292,8 @@ viewWorkspace workspace maybeWorkspaceProxy =
     case maybeWorkspaceProxy of
         Just workspaceProxy ->
             let
-                divider =
-                    div [ class "marginBottom-m borderBottom-s borderColor-secondary" ]
-                        []
-
                 body =
-                    div [] <| List.map viewTab workspace.tabs
+                    div [ class "padding-m" ] <| List.map viewTab workspace.tabs
 
                 openWorkspace =
                     case workspaceProxy.state of
@@ -274,11 +304,10 @@ viewWorkspace workspace maybeWorkspaceProxy =
                             NoOp
             in
             div
-                [ class "padding-m border-s rounded borderColor-secondary width-xl height-fit-content"
+                [ class "borderTop-s rounded opacity-70 height-fit-content background-black-2"
                 , onClick openWorkspace
                 ]
-                [ header workspace workspaceProxy
-                , divider
+                [ viewWorkspaceHeader workspace workspaceProxy
                 , body
                 ]
 
@@ -286,43 +315,43 @@ viewWorkspace workspace maybeWorkspaceProxy =
             text ""
 
 
-header : Workspace -> WorkspaceProxy -> Html Msg
-header workspace workspaceProxy =
+viewWorkspaceHeader : Workspace -> WorkspaceProxy -> Html Msg
+viewWorkspaceHeader workspace workspaceProxy =
     case workspaceProxy.state of
         Read ->
-            viewHeaderRead workspace
+            viewWorkspaceHeaderInRead workspace
 
         Edition ->
-            viewHeaderEdition workspace.id workspaceProxy
+            viewWorkspaceHeaderInEdition workspace.id workspaceProxy
 
 
-viewHeaderRead : Workspace -> Html Msg
-viewHeaderRead { id, name, color } =
+viewWorkspaceHeaderInRead : Workspace -> Html Msg
+viewWorkspaceHeaderInRead { id, name, color } =
     let
         viewName =
             h3
-                [ class <| "marginTop-none color-" ++ fromColorToString color ]
+                [ class <| "marginTop-none fontWeight-200 opacity-70 color-" ++ fromColorToString color ]
                 [ text name ]
 
         editButton =
             button
                 [ class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
-                , customOnClick <| ChangeProxyState id Edition
+                , customOnClick <| EditWorkspace id
                 ]
                 [ text "Edit" ]
     in
-    div [ class "flex alignItems-center justifyContent-space-between" ]
+    div [ class "padding-m flex alignItems-center justifyContent-space-between background-black" ]
         [ viewName
         , editButton
         ]
 
 
-viewHeaderEdition : Int -> WorkspaceProxy -> Html Msg
-viewHeaderEdition workspaceId proxy =
+viewWorkspaceHeaderInEdition : Int -> WorkspaceProxy -> Html Msg
+viewWorkspaceHeaderInEdition workspaceId proxy =
     let
         inputName =
             input
-                [ class <| "fontSize-l background-transparent marginTop-none marginBottom-m color-" ++ fromColorToString proxy.proxyColor
+                [ class <| "fontSize-l background-transparent marginTop-none marginBottom-m fontWeight-200 opacity-70 color-" ++ fromColorToString proxy.proxyColor
                 , Html.Attributes.selected True
                 , Html.Attributes.autofocus True
                 , Html.Attributes.value proxy.proxyName
@@ -373,7 +402,7 @@ viewHeaderEdition workspaceId proxy =
                 , radio Cyan
                 ]
     in
-    div [ class "flex flexDirection-col " ]
+    div [ class "padding-m flex flexDirection-col background-black" ]
         [ div [ class "flex alignItems-center justifyContent-space-between" ]
             [ inputName
             , saveButton

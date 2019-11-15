@@ -234,18 +234,10 @@ function handleOnMessages(request, sender, sendResponse) {
     const { tabs, ...workspace } = payload;
     api.Workspaces.update(workspace, tabs).then(([id, dataSaved]) => {
       machine.send('UPDATE_WORKSPACE');
-      const { data, modelsByWindowsID } = model;
-        setModel({
-          ...model,
-          data: { ...data, ...dataSaved },
-          modelsByWindowsID: {
-            ...modelsByWindowsID,
-            [window.id]: {
-              state: machine.getCurrentState(),
-              workspaceInUse: id
-            }
-          }
-        })
+      setModel({
+        ...model,
+        data: { ...model.data, ...dataSaved },
+      })
     });
   }
 }
@@ -266,6 +258,7 @@ async function openWorkspace(workspaceId, window) {
       return model.data[workspaceInUse];
     }
     return {
+      id: 0,
       name: 'last-sesion',
       key: 'las',
       color: 'gray'

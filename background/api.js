@@ -19,7 +19,7 @@ const api = {
     save: ({ id, name, key, color }, tabs) =>
       api.Workspaces.getIds()
         .then(ids => {
-          const id_ = id || generateId(ids);
+          const id_ = id === undefined ? generateId(ids) : id;
           return [
             id_, 
             {
@@ -33,10 +33,14 @@ const api = {
           return [id, data];
         }),
     update: async ({ id, name, key, color }, tabs) => {
-      if (!id) return;
+      if (id === undefined) {
+        throw "Error in update workspace, id is undefined";
+      }
+
       const data = {
         [id]: { tabs, name, key, color, id: id }
       };
+      
       await chromePromise.storage.sync.set(data);
       return [id, data];
     },

@@ -8,6 +8,8 @@ import Html.Events exposing (..)
 import Json.Decode as Decode exposing (..)
 import Json.Encode as Encode exposing (..)
 import Ports
+import Svg exposing (..)
+import Svg.Attributes exposing (..)
 
 
 
@@ -38,25 +40,19 @@ type Color
     | Cyan
 
 
-type WorkspaceState
-    = Read
-    | Edition
+type alias WorkspaceId =
+    Int
 
 
-type alias WorkspaceProxy =
-    { id : Int
-    , proxyColor : Color
-    , proxyName : String
-    , key : String
-    , state : WorkspaceState
-    , tabs : List Tab
-    }
+type CardStatus
+    = Showing
+    | Editing Workspace
 
 
 type State
     = NoInitated
     | Started
-    | WorkspaceInUse Int
+    | WorkspaceInUse WorkspaceId
 
 
 type alias Tab =
@@ -67,7 +63,7 @@ type alias Tab =
 
 
 type alias Workspace =
-    { id : Int
+    { id : WorkspaceId
     , color : Color
     , key : String
     , name : String
@@ -76,16 +72,16 @@ type alias Workspace =
 
 
 type alias Data =
-    { workspacesIds : List Int
+    { workspacesIds : List WorkspaceId
     , state : State
-    , workspacesInfo : Dict Int Workspace
+    , workspacesInfo : Dict WorkspaceId Workspace
     }
 
 
 type alias Model =
     { data : Data
     , test : String
-    , workspacesProxy : Dict Int WorkspaceProxy
+    , cards : List ( WorkspaceId, CardStatus )
     }
 
 
@@ -101,7 +97,7 @@ initModel =
         , workspacesInfo = Dict.empty
         }
     , test = ""
-    , workspacesProxy = Dict.empty
+    , cards = []
     }
 
 
@@ -117,124 +113,114 @@ init flags =
 type Msg
     = NoOp
     | ReceivedDataFromJS (Result Decode.Error Data)
-    | OpenWorkspace Int
-    | ChangeProxyName Int String
-    | ChangeProxyColor Int Color
-    | EditWorkspace Int
-    | UpdateWorkspace WorkspaceProxy
+    | OpenWorkspace WorkspaceId
+    | PressedCancelButton WorkspaceId
+    | PressedSaveButton Workspace
+    | PressedEditButton WorkspaceId
+    | ChangeField WorkspaceId (String -> Workspace -> Workspace) String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ReceivedDataFromJS value ->
-            case value of
-                Ok data ->
-                    ( { model
-                        | data = data
-                        , workspacesProxy = composeWorkspacesProxy data.workspacesIds data.workspacesInfo
-                      }
-                    , Cmd.none
-                    )
+        NoOp ->
+            ( model, Cmd.none )
 
-                Err error ->
-                    ( { model | test = "error" }, Cmd.none )
+        ReceivedDataFromJS (Ok data) ->
+            ( { model
+                | data = data
+                , cards = List.map (\workspaceId -> ( workspaceId, Showing )) data.workspacesIds
+              }
+            , Cmd.none
+            )
+
+        ReceivedDataFromJS (Err error) ->
+            ( { model | test = "error" }, Cmd.none )
 
         OpenWorkspace id ->
             ( model, Ports.openWorkspace id )
 
-        ChangeProxyName workspaceId value ->
-            ( { model
-                | workspacesProxy =
-                    Dict.update workspaceId (updateProxyName value) model.workspacesProxy
-              }
-            , Cmd.none
-            )
+        PressedCancelButton workspaceId ->
+            let
+                cards =
+                    resetCardsToShowingStatus model.cards
+            in
+            ( { model | cards = cards }, Cmd.none )
 
-        ChangeProxyColor workspaceId color ->
-            ( { model
-                | workspacesProxy =
-                    Dict.update workspaceId (updateProxyColor color) model.workspacesProxy
-              }
-            , Cmd.none
-            )
+        PressedSaveButton workspace ->
+            ( model, Ports.updateWorkspace <| encodeWorkspace workspace )
 
-        EditWorkspace workspaceId ->
-            ( { model
-                | workspacesProxy =
-                    model.data.workspacesInfo
-                        |> composeWorkspacesProxy model.data.workspacesIds
-                        |> Dict.map
-                            (\id proxy ->
-                                if workspaceId == id then
-                                    { proxy | state = Edition }
-
-                                else
-                                    proxy
-                            )
-              }
-            , Cmd.none
-            )
-
-        UpdateWorkspace proxy ->
-            ( { model
-                | workspacesProxy =
-                    Dict.update proxy.id (updateProxyState Read) model.workspacesProxy
-              }
-            , Ports.updateWorkspace <| encodeWorkspaceProxy proxy
-            )
-
-        NoOp ->
-            ( model, Cmd.none )
-
-
-updateProxyState : WorkspaceState -> Maybe WorkspaceProxy -> Maybe WorkspaceProxy
-updateProxyState state maybeProxy =
-    case maybeProxy of
-        Just proxy ->
-            Just { proxy | state = state }
-
-        Nothing ->
-            Nothing
-
-
-updateProxyName : String -> Maybe WorkspaceProxy -> Maybe WorkspaceProxy
-updateProxyName value maybeProxy =
-    case maybeProxy of
-        Just proxy ->
-            Just { proxy | proxyName = value }
-
-        option2 ->
-            Nothing
-
-
-updateProxyColor : Color -> Maybe WorkspaceProxy -> Maybe WorkspaceProxy
-updateProxyColor color maybeProxy =
-    case maybeProxy of
-        Just proxy ->
-            Just { proxy | proxyColor = color }
-
-        option2 ->
-            Nothing
-
-
-composeWorkspacesProxy : List Int -> Dict Int Workspace -> Dict Int WorkspaceProxy
-composeWorkspacesProxy workspacesIds workspacesInfos =
-    let
-        createProxy maybeInfo =
-            case maybeInfo of
-                Just info ->
-                    WorkspaceProxy info.id info.color info.name info.key Read info.tabs
+        PressedEditButton workspaceId ->
+            case Dict.get workspaceId model.data.workspacesInfo of
+                Just workspace ->
+                    ( { model
+                        | cards =
+                            model.cards
+                                |> resetCardsToShowingStatus
+                                |> changeCardStatus workspaceId (Editing workspace)
+                      }
+                    , Cmd.none
+                    )
 
                 Nothing ->
-                    WorkspaceProxy 0 Gray "" "" Read []
-    in
-    Dict.fromList <|
-        List.map
-            (\name ->
-                ( name, createProxy <| Dict.get name workspacesInfos )
+                    ( model, Cmd.none )
+
+        ChangeField workspaceId setter value ->
+            let
+                a =
+                    6
+            in
+            ( { model
+                | cards =
+                    List.map
+                        (\( id, cardStatus ) ->
+                            if id == workspaceId then
+                                case cardStatus of
+                                    Editing workspace ->
+                                        ( id, Editing <| setter value workspace )
+
+                                    _ ->
+                                        ( id, cardStatus )
+
+                            else
+                                ( id, cardStatus )
+                        )
+                        model.cards
+              }
+            , Cmd.none
             )
-            workspacesIds
+
+
+resetCardsToShowingStatus : List ( WorkspaceId, CardStatus ) -> List ( WorkspaceId, CardStatus )
+resetCardsToShowingStatus cards =
+    let
+        toShowing ( id, _ ) =
+            ( id, Showing )
+    in
+    List.map toShowing cards
+
+
+changeCardStatus : WorkspaceId -> CardStatus -> List ( WorkspaceId, CardStatus ) -> List ( WorkspaceId, CardStatus )
+changeCardStatus workspaceId newStatus cards =
+    let
+        changeStatus ( id, status ) =
+            if id == workspaceId then
+                ( id, newStatus )
+
+            else
+                ( id, status )
+    in
+    List.map changeStatus cards
+
+
+setName : String -> Workspace -> Workspace
+setName newName workspace =
+    { workspace | name = newName }
+
+
+setColor : String -> Workspace -> Workspace
+setColor color workspace =
+    { workspace | color = fromStringToColor color }
 
 
 
@@ -245,23 +231,8 @@ view : Model -> Html Msg
 view model =
     div []
         [ viewHeader model
-        , div [ class "grid gridTemplateCol-repeat-xl gridGap-m padding-m justifyContent-center" ]
-            (model.data.workspacesIds
-                |> List.map
-                    (\name ->
-                        Dict.get name model.data.workspacesInfo
-                    )
-                |> List.map
-                    (\maybeWorkspace ->
-                        case maybeWorkspace of
-                            Just workspace ->
-                                Dict.get workspace.id model.workspacesProxy
-                                    |> viewWorkspace workspace
-
-                            Nothing ->
-                                text ""
-                    )
-            )
+        , div [ Html.Attributes.class "grid gridTemplateCol-repeat-xl gridGap-m padding-m justifyContent-center" ] <|
+            viewCards model.cards model.data
         ]
 
 
@@ -271,165 +242,183 @@ viewHeader model =
         viewName id =
             case Dict.get id model.data.workspacesInfo of
                 Just { name, color } ->
-                    h2 [ class <| "color-" ++ fromColorToString color ]
-                        [ text name ]
+                    h2 [ Html.Attributes.class <| "color-" ++ fromColorToString color ]
+                        [ Html.text name ]
 
                 Nothing ->
-                    text ""
+                    Html.text ""
     in
-    div [ class "full-width height-s background-transparent sticky backdrop-filter-blur boxShadow-black zIndex-4 marginBottom-xl flex alignItems-center justifyContent-center" ]
+    div [ Html.Attributes.class "full-width height-s background-transparent sticky backdrop-filter-blur boxShadow-black zIndex-4 marginBottom-xl flex alignItems-center justifyContent-center" ]
         [ case model.data.state of
             WorkspaceInUse id ->
                 viewName id
 
             _ ->
-                text ""
+                Html.text ""
         ]
 
 
-viewWorkspace : Workspace -> Maybe WorkspaceProxy -> Html Msg
-viewWorkspace workspace maybeWorkspaceProxy =
-    case maybeWorkspaceProxy of
-        Just workspaceProxy ->
+viewCards : List ( WorkspaceId, CardStatus ) -> Data -> List (Html Msg)
+viewCards cards { workspacesInfo } =
+    List.map (viewCard workspacesInfo) cards
+
+
+viewCard : Dict WorkspaceId Workspace -> ( WorkspaceId, CardStatus ) -> Html Msg
+viewCard workspacesInfo ( workspaceId, cardStatus ) =
+    case cardStatus of
+        Showing ->
+            case Dict.get workspaceId workspacesInfo of
+                Just workspace ->
+                    viewShowingCard workspace
+
+                Nothing ->
+                    Html.text ""
+
+        Editing workspace ->
+            viewEditingCard workspace
+
+
+viewShowingCard : Workspace -> Html Msg
+viewShowingCard { id, name, color, tabs } =
+    let
+        header =
             let
-                body =
-                    div [ class "padding-m" ] <| List.map viewTab workspace.tabs
+                viewName =
+                    h3
+                        [ Html.Attributes.class <| "marginTop-none fontWeight-200 color-" ++ fromColorToString color ]
+                        [ Html.text name ]
 
-                openWorkspace =
-                    case workspaceProxy.state of
-                        Read ->
-                            OpenWorkspace workspace.id
-
-                        Edition ->
-                            NoOp
+                actions =
+                    div []
+                        [ button
+                            [ Html.Attributes.class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
+                            , customOnClick <| PressedEditButton id
+                            ]
+                            [ Html.text "Edit" ]
+                        ]
             in
-            div
-                [ class "borderTop-s rounded opacity-70 height-fit-content background-black-2"
-                , onClick openWorkspace
-                ]
-                [ viewWorkspaceHeader workspace workspaceProxy
-                , body
+            div [ Html.Attributes.class "padding-m flex alignItems-center justifyContent-space-between background-black" ]
+                [ viewName
+                , actions
                 ]
 
-        Nothing ->
-            text ""
-
-
-viewWorkspaceHeader : Workspace -> WorkspaceProxy -> Html Msg
-viewWorkspaceHeader workspace workspaceProxy =
-    case workspaceProxy.state of
-        Read ->
-            viewWorkspaceHeaderInRead workspace
-
-        Edition ->
-            viewWorkspaceHeaderInEdition workspace.id workspaceProxy
-
-
-viewWorkspaceHeaderInRead : Workspace -> Html Msg
-viewWorkspaceHeaderInRead { id, name, color } =
-    let
-        viewName =
-            h3
-                [ class <| "marginTop-none fontWeight-200 opacity-70 color-" ++ fromColorToString color ]
-                [ text name ]
-
-        editButton =
-            button
-                [ class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
-                , customOnClick <| EditWorkspace id
-                ]
-                [ text "Edit" ]
+        body =
+            div [ Html.Attributes.class "padding-m opacity-70" ] <| List.map viewTab tabs
     in
-    div [ class "padding-m flex alignItems-center justifyContent-space-between background-black" ]
-        [ viewName
-        , editButton
+    div
+        [ Html.Attributes.class <| "borderTop-s rounded height-fit-content background-black-2 cursor-rocket"
+        , onClick <| OpenWorkspace id
+        ]
+        [ header
+        , body
         ]
 
 
-viewWorkspaceHeaderInEdition : Int -> WorkspaceProxy -> Html Msg
-viewWorkspaceHeaderInEdition workspaceId proxy =
+viewEditingCard : Workspace -> Html Msg
+viewEditingCard workspace =
     let
-        inputName =
-            input
-                [ class <| "fontSize-l background-transparent marginTop-none marginBottom-m fontWeight-200 opacity-70 color-" ++ fromColorToString proxy.proxyColor
-                , Html.Attributes.selected True
-                , Html.Attributes.autofocus True
-                , Html.Attributes.value proxy.proxyName
-                , Html.Events.onInput <| ChangeProxyName workspaceId
-                ]
-                []
+        body =
+            div [ Html.Attributes.class "padding-m opacity-70" ] <| List.map viewTab workspace.tabs
 
-        saveButton =
-            button
-                [ class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
-                , customOnClick <| UpdateWorkspace proxy
-                ]
-                [ text "Save" ]
+        header =
+            let
+                inputName =
+                    input
+                        [ Html.Attributes.class <| "fontSize-l background-transparent marginTop-none marginBottom-m fontWeight-200 color-" ++ fromColorToString workspace.color
+                        , Html.Attributes.selected True
+                        , Html.Attributes.autofocus True
+                        , Html.Attributes.value workspace.name
+                        , Html.Events.onInput <| ChangeField workspace.id setName
+                        ]
+                        []
 
-        radio color =
+                buttonStyle =
+                    Html.Attributes.class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
+
+                saveButton =
+                    button
+                        [ Html.Attributes.class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
+                        , customOnClick <| PressedSaveButton workspace
+                        ]
+                        [ Html.text "Save" ]
+            in
+            div [ Html.Attributes.class "padding-m flex flexDirection-col background-black" ]
+                [ div [ Html.Attributes.class "flex alignItems-center justifyContent-space-between" ]
+                    [ inputName
+                    , div []
+                        [ button
+                            [ Html.Attributes.class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
+                            , customOnClick <| PressedSaveButton workspace
+                            ]
+                            [ Html.text "Save" ]
+                        , button
+                            [ buttonStyle
+                            , customOnClick <| PressedCancelButton workspace.id
+                            ]
+                            [ Html.text "Cancel" ]
+                        ]
+                    ]
+                , viewRadioGroupColors workspace.id workspace.color
+                ]
+    in
+    div
+        [ Html.Attributes.class <| "borderTop-s rounded height-fit-content background-black-2"
+        , onClick NoOp
+        ]
+        [ header
+        , body
+        ]
+
+
+viewRadioGroupColors : WorkspaceId -> Color -> Html Msg
+viewRadioGroupColors workspaceId color =
+    let
+        radio color_ =
             let
                 isChecked =
-                    color == proxy.proxyColor
+                    color_ == color
 
                 stringColor =
-                    fromColorToString color
+                    fromColorToString color_
 
                 handleOnInput value =
-                    ChangeProxyColor workspaceId <| fromStringToColor value
+                    ChangeField workspaceId setColor value
             in
-            label [ class "radioLabel" ]
+            label [ Html.Attributes.class "radioLabel" ]
                 [ input
-                    [ type_ "radio"
-                    , name <| String.fromInt workspaceId ++ "-" ++ stringColor
-                    , class "absolute width-0 height-0"
+                    [ Html.Attributes.type_ "radio"
+                    , Html.Attributes.name <| String.fromInt workspaceId ++ "-" ++ stringColor
+                    , Html.Attributes.class "absolute width-0 height-0"
                     , checked isChecked
                     , Html.Attributes.value stringColor
                     , onInput handleOnInput
                     ]
                     []
-                , span [ class <| "checkmark background-" ++ stringColor ] []
-                ]
-
-        colorsGroup =
-            div [ class "flex" ]
-                [ radio Green
-                , radio Blue
-                , radio Orange
-                , radio Purple
-                , radio Yellow
-                , radio Red
-                , radio Gray
-                , radio Cyan
+                , span [ Html.Attributes.class <| "checkmark background-" ++ stringColor ] []
                 ]
     in
-    div [ class "padding-m flex flexDirection-col background-black" ]
-        [ div [ class "flex alignItems-center justifyContent-space-between" ]
-            [ inputName
-            , saveButton
-            ]
-        , colorsGroup
+    div [ Html.Attributes.class "flex opacity-70" ]
+        [ radio Green
+        , radio Blue
+        , radio Orange
+        , radio Purple
+        , radio Yellow
+        , radio Red
+        , radio Gray
+        , radio Cyan
         ]
 
 
 viewTab : Tab -> Html Msg
 viewTab { title, url, icon } =
-    let
-        srcIcon =
-            case icon of
-                Just value ->
-                    value
-
-                Nothing ->
-                    ""
-    in
-    div [ class "flex alignItems-center marginBottom-s" ]
+    div [ Html.Attributes.class "flex alignItems-center marginBottom-s" ]
         [ img
-            [ src srcIcon
-            , class "width-xs height-xs beforeBackgroundColor-secondary marginRight-s"
+            [ src <| Maybe.withDefault "" icon
+            , Html.Attributes.class "width-xs height-xs beforeBackgroundColor-secondary marginRight-s"
             ]
             []
-        , span [ class "ellipsis overflowHidden whiteSpace-nowrap color-contrast" ]
-            [ text title ]
+        , span [ Html.Attributes.class "ellipsis overflowHidden whiteSpace-nowrap color-contrast" ]
+            [ Html.text title ]
         ]
 
 
@@ -447,7 +436,7 @@ subscriptions model =
 -- HELPERS
 
 
-customOnClick : Msg -> Attribute Msg
+customOnClick : Msg -> Html.Attribute Msg
 customOnClick msg =
     Html.Events.custom
         "click"
@@ -531,7 +520,7 @@ dataDecoder =
             (Decode.field "workspacesInfo" workspacesInfoDecoder)
 
 
-workspacesInfoDecoder : Decoder (Dict Int Workspace)
+workspacesInfoDecoder : Decoder (Dict WorkspaceId Workspace)
 workspacesInfoDecoder =
     Decode.dict workspaceDecoder
         |> Decode.map stringDictToIntDict
@@ -601,14 +590,14 @@ tabDecoder =
 -- ENCODERS
 
 
-encodeWorkspaceProxy : WorkspaceProxy -> Encode.Value
-encodeWorkspaceProxy proxy =
+encodeWorkspace : Workspace -> Encode.Value
+encodeWorkspace workspace =
     Encode.object
-        [ ( "id", Encode.int proxy.id )
-        , ( "key", Encode.string proxy.key )
-        , ( "name", Encode.string proxy.proxyName )
-        , ( "color", Encode.string <| fromColorToString proxy.proxyColor )
-        , ( "tabs", Encode.list encodeTab proxy.tabs )
+        [ ( "id", Encode.int workspace.id )
+        , ( "key", Encode.string workspace.key )
+        , ( "name", Encode.string workspace.name )
+        , ( "color", Encode.string <| fromColorToString workspace.color )
+        , ( "tabs", Encode.list encodeTab workspace.tabs )
         ]
 
 

@@ -212,33 +212,45 @@ function handleOnMessages(request, sender, sendResponse) {
   if (type === 'create_workspace' && machine.isEventAvailable('CREATE_WORKSPACE')) {
     api.Tabs.getCurrentWindow()
       .then(tabs => api.Workspaces.save(payload, tabs))
-      .then(([id, dataSaved]) => {
-        console.log('data saved: ', dataSaved);
-        machine.send('CREATE_WORKSPACE');
-        const { data, modelsByWindowsID } = model;
-        setModel({
-          ...model,
-          data: { ...data, ...dataSaved },
-          modelsByWindowsID: {
-            ...modelsByWindowsID,
-            [window.id]: {
-              state: machine.getCurrentState(),
-              workspaceInUse: id
-            }
+      .then(updateModel);
+
+    function updateModel([id, dataSaved]) {
+      console.log('data saved: ', dataSaved);
+      machine.send('CREATE_WORKSPACE');
+      const { data, modelsByWindowsID } = model;
+      setModel({
+        ...model,
+        data: { ...data, ...dataSaved },
+        modelsByWindowsID: {
+          ...modelsByWindowsID,
+          [window.id]: {
+            state: machine.getCurrentState(),
+            workspaceInUse: id
           }
-        })
-      });
+        }
+      })
+    }
   }
 
   if (type === 'update_workspace' && machine.isEventAvailable('UPDATE_WORKSPACE')) {
     const { tabs, ...workspace } = payload;
-    api.Workspaces.update(workspace, tabs).then(([id, dataSaved]) => {
+
+    // si es 0 es porque esta editando un last-sesion
+    // entonces se crea un nuevo workspace en vez de actualizarlo
+    if (workspace.id === 0) {
+      const { id, ...rest } = workspace;
+      api.Workspaces.save(rest, tabs).then(updateModel);
+    } else {
+      api.Workspaces.update(workspace, tabs).then(updateModel);
+    }
+
+    function updateModel([id, dataSaved]) {
       machine.send('UPDATE_WORKSPACE');
       setModel({
         ...model,
         data: { ...model.data, ...dataSaved },
       })
-    });
+    }
   }
 }
 
@@ -252,6 +264,7 @@ function broadcast(model) {
 
 async function openWorkspace(workspaceId, window) {
   const getWorkspaceInUse = compose(prop('workspaceInUse'), prop(window.id), prop('modelsByWindowsID'));
+  
   const workspaceToSave = model => {
     const workspaceInUse = getWorkspaceInUse(model);
     if (workspaceInUse) {
@@ -263,7 +276,7 @@ async function openWorkspace(workspaceId, window) {
       key: 'las',
       color: 'gray'
     };
-  }
+  };
   
   const currentlyOpenTabs = await api.Tabs.get(window.id);
   const tabsToOpen = await api.Workspaces.get(workspaceId)
@@ -278,9 +291,8 @@ async function openWorkspace(workspaceId, window) {
   await api.Tabs.remove(currentlyOpenTabs.map(prop('id')));
   
   const [id, data] = await api.Workspaces.save(workspaceToSave(model), currentlyOpenTabs);
-  const { __workspaces_ids__, ...rest } = data;
-
-  return [workspaceId, rest];
+  
+  return [workspaceId, data];
 }
 
 

@@ -243,6 +243,10 @@ img::before {
   opacity: 0.5;
 }
 
+.cursor-rocket {
+  cursor: url("../assets/rocket.svg"), auto; 
+}
+
 /* https://codepen.io/haderman/pen/GRRrxed?editors=1100 */
 .scroll-shadow {
   background:
@@ -258,7 +262,7 @@ img::before {
 }
 
 /* COLORS */
-.background-black-2 { background-color: #050505;}
+.background-black-2 { background-color: #090909;}
 .background-black { background-color: #000000 ;}
 .background-green { background-color: #27ae60; }
 .background-blue { background-color: #03a9f4; }
@@ -432,3 +436,8 @@ img::before {
     background: transparent;
     border: 1px solid white;
   }
+
+
+.filter-gooey {
+  filter: url(#gooey);
+}

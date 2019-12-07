@@ -33,6 +33,10 @@ function onLoad() {
     app.ports.updateWorkspace.subscribe(function (workspaceProxy) {
       chrome.extension.sendMessage({ type: 'update_workspace', payload: workspaceProxy, window });
     });
+
+    app.ports.deleteWorkspace.subscribe(function (workspaceId) {
+      chrome.extension.sendMessage({ type: 'delete_workspace', payload: workspaceId, window });
+    });
   }); 
 }
 

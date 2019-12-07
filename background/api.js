@@ -32,6 +32,13 @@ const api = {
           await chromePromise.storage.sync.set(data);
           return [id, data];
         }),
+    async remove (id) {
+      await chromePromise.storage.sync.remove(id.toString());
+      const ids = await api.Workspaces.getIds();
+      const filteredIds = ids.filter(id_ => id !== id_);
+      await chromePromise.storage.sync.set({ __workspaces_ids__: filteredIds });
+      return filteredIds;
+    },
     update: async ({ id, name, key, color }, tabs) => {
       if (id === undefined) {
         throw "Error in update workspace, id is undefined";

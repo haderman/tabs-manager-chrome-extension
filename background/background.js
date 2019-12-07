@@ -31,13 +31,15 @@ const windowStates = {
     on: {
       OPEN_WORKSPACE: 'workspaceInUse',
       CREATE_WORKSPACE: 'workspaceInUse',
-      UPDATE_WORKSPACE: 'started'
+      UPDATE_WORKSPACE: 'started',
+      DELETE_WORKSPACE: 'started',
     }
   },
   workspaceInUse: {
     on: {
       OPEN_WORKSPACE: 'workspaceInUse',
-      UPDATE_WORKSPACE: 'workspaceInUse'
+      UPDATE_WORKSPACE: 'workspaceInUse',
+      DELETE_WORKSPACE: 'workspaceInUse',
     }
   }
 };
@@ -251,6 +253,19 @@ function handleOnMessages(request, sender, sendResponse) {
         data: { ...model.data, ...dataSaved },
       })
     }
+  }
+
+  if (type === 'delete_workspace' && machine.isEventAvailable('DELETE_WORKSPACE')) {
+    api.Workspaces.remove(payload).then(workspacesIds => {
+      const dataCopy = { ...model.data };
+      dataCopy.__workspaces_ids__ = workspacesIds;
+      delete dataCopy[payload];
+  
+      setModel({
+        ...model,
+        data: dataCopy
+      });
+    });
   }
 }
 

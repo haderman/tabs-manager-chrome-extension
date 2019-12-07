@@ -117,6 +117,7 @@ type Msg
     | PressedCancelButton WorkspaceId
     | PressedSaveButton Workspace
     | PressedEditButton WorkspaceId
+    | PressedDeleteButton WorkspaceId
     | ChangeField WorkspaceId (String -> Workspace -> Workspace) String
 
 
@@ -165,11 +166,10 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        PressedDeleteButton workspaceId ->
+            ( model, Ports.deleteWorkspace workspaceId )
+
         ChangeField workspaceId setter value ->
-            let
-                a =
-                    6
-            in
             ( { model
                 | cards =
                     List.map
@@ -347,6 +347,11 @@ viewEditingCard workspace =
                     [ inputName
                     , div []
                         [ button
+                            [ Html.Attributes.class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
+                            , customOnClick <| PressedDeleteButton workspace.id
+                            ]
+                            [ Html.text "Del" ]
+                        , button
                             [ Html.Attributes.class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
                             , customOnClick <| PressedSaveButton workspace
                             ]
@@ -612,9 +617,4 @@ encodeTab tab =
 
 encodeIcon : Maybe String -> Encode.Value
 encodeIcon maybeIcon =
-    case maybeIcon of
-        Just icon ->
-            Encode.string icon
-
-        Nothing ->
-            Encode.string ""
+    Encode.string <| Maybe.withDefault "" maybeIcon

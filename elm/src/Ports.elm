@@ -1,5 +1,6 @@
 port module Ports exposing
-    ( openWorkspace
+    ( deleteWorkspace
+    , openWorkspace
     , receivedDataFromJS
     , updateWorkspace
     )
@@ -16,6 +17,9 @@ port openWorkspace : Int -> Cmd msg
 
 
 port updateWorkspace : E.Value -> Cmd msg
+
+
+port deleteWorkspace : Int -> Cmd msg
 
 
 

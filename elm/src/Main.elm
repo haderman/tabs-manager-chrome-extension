@@ -231,8 +231,7 @@ view : Model -> Html Msg
 view model =
     div []
         [ viewHeader model
-        , div [ Html.Attributes.class "grid gridTemplateCol-repeat-xl gridGap-m padding-m justifyContent-center" ] <|
-            viewCards model.cards model.data
+        , viewCards model.cards model.data
         ]
 
 
@@ -258,9 +257,52 @@ viewHeader model =
         ]
 
 
-viewCards : List ( WorkspaceId, CardStatus ) -> Data -> List (Html Msg)
+viewCards : List ( WorkspaceId, CardStatus ) -> Data -> Html Msg
 viewCards cards { workspacesInfo } =
-    List.map (viewCard workspacesInfo) cards
+    let
+        numColumns =
+            3
+
+        assignToCol bucket index ( id, cardStatus ) =
+            if modBy numColumns index == bucket then
+                ( id, cardStatus )
+
+            else
+                ( -1, cardStatus )
+
+        removeCardsOfOtherCols ( id, cardStatus ) =
+            not (id == -1)
+
+        createCard =
+            viewCard workspacesInfo
+
+        col0 =
+            cards
+                |> List.indexedMap (assignToCol 0)
+                |> List.filter removeCardsOfOtherCols
+                |> List.map createCard
+
+        col1 =
+            cards
+                |> List.indexedMap (assignToCol 1)
+                |> List.filter removeCardsOfOtherCols
+                |> List.map createCard
+
+        col2 =
+            cards
+                |> List.indexedMap (assignToCol 2)
+                |> List.filter removeCardsOfOtherCols
+                |> List.map createCard
+    in
+    div [ Html.Attributes.class "grid gridTemplateCol-repeat-xl gridGap-m padding-m justifyContent-center" ]
+        [ div [] col0
+        , div [] col1
+        , div [] col2
+        ]
+
+
+
+--List.map (viewCard workspacesInfo) cards
 
 
 viewCard : Dict WorkspaceId Workspace -> ( WorkspaceId, CardStatus ) -> Html Msg
@@ -288,13 +330,16 @@ viewShowingCard { id, name, color, tabs } =
                         [ Html.Attributes.class <| "marginTop-none fontWeight-200 color-" ++ fromColorToString color ]
                         [ Html.text name ]
 
+                buttonStyle =
+                    Html.Attributes.class "width-xs height-xs background-secondary circle marginLeft-l marginBottom-xs color-contrast show-in-hover"
+
                 actions =
                     div []
                         [ button
-                            [ Html.Attributes.class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
+                            [ buttonStyle
                             , customOnClick <| PressedEditButton id
                             ]
-                            [ Html.text "Edit" ]
+                            [ Html.text "E" ]
                         ]
             in
             div [ Html.Attributes.class "padding-m flex alignItems-center justifyContent-space-between background-black" ]
@@ -306,7 +351,7 @@ viewShowingCard { id, name, color, tabs } =
             div [ Html.Attributes.class "padding-m opacity-70" ] <| List.map viewTab tabs
     in
     div
-        [ Html.Attributes.class <| "borderTop-s rounded height-fit-content background-black-2 cursor-rocket"
+        [ Html.Attributes.class <| "borderTop-s rounded height-fit-content background-black-2 cursor-rocket marginBottom-xl"
         , onClick <| OpenWorkspace id
         ]
         [ header
@@ -333,41 +378,34 @@ viewEditingCard workspace =
                         []
 
                 buttonStyle =
-                    Html.Attributes.class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
-
-                saveButton =
-                    button
-                        [ Html.Attributes.class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
-                        , customOnClick <| PressedSaveButton workspace
-                        ]
-                        [ Html.text "Save" ]
+                    Html.Attributes.class "width-xs height-xs background-secondary circle marginLeft-l marginBottom-xs color-contrast show-in-hover"
             in
             div [ Html.Attributes.class "padding-m flex flexDirection-col background-black" ]
                 [ div [ Html.Attributes.class "flex alignItems-center justifyContent-space-between" ]
                     [ inputName
                     , div []
                         [ button
-                            [ Html.Attributes.class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
+                            [ buttonStyle
                             , customOnClick <| PressedDeleteButton workspace.id
                             ]
-                            [ Html.text "Del" ]
+                            [ Html.text "D" ]
                         , button
-                            [ Html.Attributes.class "padding-m background-secondary rounded marginLeft-l marginBottom-xs color-contrast show-in-hover"
+                            [ buttonStyle
                             , customOnClick <| PressedSaveButton workspace
                             ]
-                            [ Html.text "Save" ]
+                            [ Html.text "S" ]
                         , button
                             [ buttonStyle
                             , customOnClick <| PressedCancelButton workspace.id
                             ]
-                            [ Html.text "Cancel" ]
+                            [ Html.text "X" ]
                         ]
                     ]
                 , viewRadioGroupColors workspace.id workspace.color
                 ]
     in
     div
-        [ Html.Attributes.class <| "borderTop-s rounded height-fit-content background-black-2"
+        [ Html.Attributes.class <| "borderTop-s rounded height-fit-content background-black-2 marginBottom-xl"
         , onClick NoOp
         ]
         [ header
@@ -419,10 +457,10 @@ viewTab { title, url, icon } =
     div [ Html.Attributes.class "flex alignItems-center marginBottom-s" ]
         [ img
             [ src <| Maybe.withDefault "" icon
-            , Html.Attributes.class "width-xs height-xs beforeBackgroundColor-secondary marginRight-s"
+            , Html.Attributes.class "width-xs height-xs beforeBackgroundColor-secondary marginRight-s beforeBackgroundColor-secondary"
             ]
             []
-        , span [ Html.Attributes.class "ellipsis overflowHidden whiteSpace-nowrap color-contrast" ]
+        , span [ Html.Attributes.class "flex-1 ellipsis overflowHidden whiteSpace-nowrap color-contrast" ]
             [ Html.text title ]
         ]
 

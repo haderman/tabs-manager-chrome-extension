@@ -1,6 +1,6 @@
 function onLoad() {
   chrome.windows.getCurrent(function gotCurrentWindow(window) {
-    app = Elm.Main.init({
+    app = Elm.NewTab.init({
       node: document.getElementById('elm'),
       flags: { window: window.id }
     });

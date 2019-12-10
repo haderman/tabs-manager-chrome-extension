@@ -1,6 +1,7 @@
-module Main exposing (..)
+module NewTab exposing (..)
 
 import Browser
+import Color as C
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -10,12 +11,14 @@ import Json.Encode as Encode exposing (..)
 import Ports
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
+import Workspace as W
 
 
 
 -- MAIN
 
 
+main : Program Flags Model Msg
 main =
     Browser.element
         { init = init
@@ -29,59 +32,28 @@ main =
 -- MODEL
 
 
-type Color
-    = Green
-    | Blue
-    | Orange
-    | Purple
-    | Yellow
-    | Red
-    | Gray
-    | Cyan
-
-
-type alias WorkspaceId =
-    Int
-
-
 type CardStatus
     = Showing
-    | Editing Workspace
+    | Editing W.Workspace
 
 
 type State
     = NoInitated
     | Started
-    | WorkspaceInUse WorkspaceId
-
-
-type alias Tab =
-    { title : String
-    , url : String
-    , icon : Maybe String
-    }
-
-
-type alias Workspace =
-    { id : WorkspaceId
-    , color : Color
-    , key : String
-    , name : String
-    , tabs : List Tab
-    }
+    | WorkspaceInUse W.WorkspaceId
 
 
 type alias Data =
-    { workspacesIds : List WorkspaceId
+    { workspacesIds : List W.WorkspaceId
     , state : State
-    , workspacesInfo : Dict WorkspaceId Workspace
+    , workspacesInfo : Dict W.WorkspaceId W.Workspace
     }
 
 
 type alias Model =
     { data : Data
     , test : String
-    , cards : List ( WorkspaceId, CardStatus )
+    , cards : List ( W.WorkspaceId, CardStatus )
     }
 
 
@@ -113,12 +85,12 @@ init flags =
 type Msg
     = NoOp
     | ReceivedDataFromJS (Result Decode.Error Data)
-    | OpenWorkspace WorkspaceId
-    | PressedCancelButton WorkspaceId
-    | PressedSaveButton Workspace
-    | PressedEditButton WorkspaceId
-    | PressedDeleteButton WorkspaceId
-    | ChangeField WorkspaceId (String -> Workspace -> Workspace) String
+    | OpenWorkspace W.WorkspaceId
+    | PressedCancelButton W.WorkspaceId
+    | PressedSaveButton W.Workspace
+    | PressedEditButton W.WorkspaceId
+    | PressedDeleteButton W.WorkspaceId
+    | ChangeField W.WorkspaceId (String -> W.Workspace -> W.Workspace) String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -149,7 +121,7 @@ update msg model =
             ( { model | cards = cards }, Cmd.none )
 
         PressedSaveButton workspace ->
-            ( model, Ports.updateWorkspace <| encodeWorkspace workspace )
+            ( model, Ports.updateWorkspace <| W.encode workspace )
 
         PressedEditButton workspaceId ->
             case Dict.get workspaceId model.data.workspacesInfo of
@@ -191,7 +163,7 @@ update msg model =
             )
 
 
-resetCardsToShowingStatus : List ( WorkspaceId, CardStatus ) -> List ( WorkspaceId, CardStatus )
+resetCardsToShowingStatus : List ( W.WorkspaceId, CardStatus ) -> List ( W.WorkspaceId, CardStatus )
 resetCardsToShowingStatus cards =
     let
         toShowing ( id, _ ) =
@@ -200,7 +172,7 @@ resetCardsToShowingStatus cards =
     List.map toShowing cards
 
 
-changeCardStatus : WorkspaceId -> CardStatus -> List ( WorkspaceId, CardStatus ) -> List ( WorkspaceId, CardStatus )
+changeCardStatus : W.WorkspaceId -> CardStatus -> List ( W.WorkspaceId, CardStatus ) -> List ( W.WorkspaceId, CardStatus )
 changeCardStatus workspaceId newStatus cards =
     let
         changeStatus ( id, status ) =
@@ -213,14 +185,14 @@ changeCardStatus workspaceId newStatus cards =
     List.map changeStatus cards
 
 
-setName : String -> Workspace -> Workspace
+setName : String -> W.Workspace -> W.Workspace
 setName newName workspace =
     { workspace | name = newName }
 
 
-setColor : String -> Workspace -> Workspace
+setColor : String -> W.Workspace -> W.Workspace
 setColor color workspace =
-    { workspace | color = fromStringToColor color }
+    { workspace | color = C.fromStringToColor color }
 
 
 
@@ -241,7 +213,7 @@ viewHeader model =
         viewName id =
             case Dict.get id model.data.workspacesInfo of
                 Just { name, color } ->
-                    h2 [ Html.Attributes.class <| "color-" ++ fromColorToString color ]
+                    h2 [ Html.Attributes.class <| "color-" ++ C.fromColorToString color ]
                         [ Html.text name ]
 
                 Nothing ->
@@ -257,7 +229,7 @@ viewHeader model =
         ]
 
 
-viewCards : List ( WorkspaceId, CardStatus ) -> Data -> Html Msg
+viewCards : List ( W.WorkspaceId, CardStatus ) -> Data -> Html Msg
 viewCards cards { workspacesInfo } =
     let
         numColumns =
@@ -301,11 +273,7 @@ viewCards cards { workspacesInfo } =
         ]
 
 
-
---List.map (viewCard workspacesInfo) cards
-
-
-viewCard : Dict WorkspaceId Workspace -> ( WorkspaceId, CardStatus ) -> Html Msg
+viewCard : Dict W.WorkspaceId W.Workspace -> ( W.WorkspaceId, CardStatus ) -> Html Msg
 viewCard workspacesInfo ( workspaceId, cardStatus ) =
     case cardStatus of
         Showing ->
@@ -320,14 +288,14 @@ viewCard workspacesInfo ( workspaceId, cardStatus ) =
             viewEditingCard workspace
 
 
-viewShowingCard : Workspace -> Html Msg
+viewShowingCard : W.Workspace -> Html Msg
 viewShowingCard { id, name, color, tabs } =
     let
         header =
             let
                 viewName =
                     h3
-                        [ Html.Attributes.class <| "marginTop-none fontWeight-200 color-" ++ fromColorToString color ]
+                        [ Html.Attributes.class <| "marginTop-none fontWeight-200 color-" ++ C.fromColorToString color ]
                         [ Html.text name ]
 
                 buttonStyle =
@@ -359,7 +327,7 @@ viewShowingCard { id, name, color, tabs } =
         ]
 
 
-viewEditingCard : Workspace -> Html Msg
+viewEditingCard : W.Workspace -> Html Msg
 viewEditingCard workspace =
     let
         body =
@@ -369,7 +337,7 @@ viewEditingCard workspace =
             let
                 inputName =
                     input
-                        [ Html.Attributes.class <| "fontSize-l background-transparent marginTop-none marginBottom-m fontWeight-200 color-" ++ fromColorToString workspace.color
+                        [ Html.Attributes.class <| "fontSize-l background-transparent marginTop-none marginBottom-m fontWeight-200 color-" ++ C.fromColorToString workspace.color
                         , Html.Attributes.selected True
                         , Html.Attributes.autofocus True
                         , Html.Attributes.value workspace.name
@@ -413,7 +381,7 @@ viewEditingCard workspace =
         ]
 
 
-viewRadioGroupColors : WorkspaceId -> Color -> Html Msg
+viewRadioGroupColors : W.WorkspaceId -> C.Color -> Html Msg
 viewRadioGroupColors workspaceId color =
     let
         radio color_ =
@@ -422,7 +390,7 @@ viewRadioGroupColors workspaceId color =
                     color_ == color
 
                 stringColor =
-                    fromColorToString color_
+                    C.fromColorToString color_
 
                 handleOnInput value =
                     ChangeField workspaceId setColor value
@@ -441,18 +409,18 @@ viewRadioGroupColors workspaceId color =
                 ]
     in
     div [ Html.Attributes.class "flex opacity-70" ]
-        [ radio Green
-        , radio Blue
-        , radio Orange
-        , radio Purple
-        , radio Yellow
-        , radio Red
-        , radio Gray
-        , radio Cyan
+        [ radio C.Green
+        , radio C.Blue
+        , radio C.Orange
+        , radio C.Purple
+        , radio C.Yellow
+        , radio C.Red
+        , radio C.Gray
+        , radio C.Cyan
         ]
 
 
-viewTab : Tab -> Html Msg
+viewTab : W.Tab -> Html Msg
 viewTab { title, url, icon } =
     div [ Html.Attributes.class "flex alignItems-center marginBottom-s" ]
         [ img
@@ -491,65 +459,6 @@ customOnClick msg =
         )
 
 
-fromColorToString : Color -> String
-fromColorToString color =
-    case color of
-        Green ->
-            "green"
-
-        Blue ->
-            "blue"
-
-        Orange ->
-            "orange"
-
-        Purple ->
-            "purple"
-
-        Yellow ->
-            "yellow"
-
-        Red ->
-            "red"
-
-        Gray ->
-            "gray"
-
-        Cyan ->
-            "cyan"
-
-
-fromStringToColor : String -> Color
-fromStringToColor str =
-    case str of
-        "green" ->
-            Green
-
-        "blue" ->
-            Blue
-
-        "orange" ->
-            Orange
-
-        "purple" ->
-            Purple
-
-        "yellow" ->
-            Yellow
-
-        "red" ->
-            Red
-
-        "gray" ->
-            Gray
-
-        "cyan" ->
-            Cyan
-
-        _ ->
-            Gray
-
-
 
 -- DECODERS
 
@@ -563,9 +472,9 @@ dataDecoder =
             (Decode.field "workspacesInfo" workspacesInfoDecoder)
 
 
-workspacesInfoDecoder : Decoder (Dict WorkspaceId Workspace)
+workspacesInfoDecoder : Decoder (Dict W.WorkspaceId W.Workspace)
 workspacesInfoDecoder =
-    Decode.dict workspaceDecoder
+    Decode.dict W.decode
         |> Decode.map stringDictToIntDict
 
 
@@ -598,61 +507,3 @@ workspaceInUseDecoder : Decoder State
 workspaceInUseDecoder =
     Decode.map WorkspaceInUse <|
         Decode.field "workspaceInUse" Decode.int
-
-
-workspaceDecoder : Decoder Workspace
-workspaceDecoder =
-    Decode.map5 Workspace
-        (Decode.field "id" Decode.int)
-        (Decode.field "color" colorDecoder)
-        (Decode.field "key" Decode.string)
-        (Decode.field "name" Decode.string)
-        (Decode.field "tabs" tabListDecoder)
-
-
-colorDecoder : Decoder Color
-colorDecoder =
-    Decode.string
-        |> Decode.andThen (Decode.succeed << fromStringToColor)
-
-
-tabListDecoder : Decoder (List Tab)
-tabListDecoder =
-    Decode.list tabDecoder
-
-
-tabDecoder : Decoder Tab
-tabDecoder =
-    Decode.map3 Tab
-        (Decode.field "title" Decode.string)
-        (Decode.field "url" Decode.string)
-        (Decode.maybe <| Decode.field "favIconUrl" Decode.string)
-
-
-
--- ENCODERS
-
-
-encodeWorkspace : Workspace -> Encode.Value
-encodeWorkspace workspace =
-    Encode.object
-        [ ( "id", Encode.int workspace.id )
-        , ( "key", Encode.string workspace.key )
-        , ( "name", Encode.string workspace.name )
-        , ( "color", Encode.string <| fromColorToString workspace.color )
-        , ( "tabs", Encode.list encodeTab workspace.tabs )
-        ]
-
-
-encodeTab : Tab -> Encode.Value
-encodeTab tab =
-    Encode.object
-        [ ( "url", Encode.string tab.url )
-        , ( "title", Encode.string tab.title )
-        , ( "favIconUrl", encodeIcon tab.icon )
-        ]
-
-
-encodeIcon : Maybe String -> Encode.Value
-encodeIcon maybeIcon =
-    Encode.string <| Maybe.withDefault "" maybeIcon

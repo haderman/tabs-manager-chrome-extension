@@ -3,14 +3,18 @@
   <head>
     <link href="../shared/base.css" rel="stylesheet" />
     <style>
-      body {
+      /* body {
         width: 200px;
         min-height: 100px;
-      }
+      } */
     </style>
   </head>
   <body class="windowPopup background-primary">
-    <div id="root"></div>
+    <div id="elm"></div>
+    <script src="../shared/render.js"></script>
+    <script src="../shared/fp.js"></script>
+    <script src="../elm/popup.js"></script>
+    <script src="index.js"></script>
     <svg class="height-none">
       <defs>
         <filter id="backdrop-filter-blur">
@@ -21,8 +25,5 @@
         </filter>
       </defs>
     </svg>
-    <script src="../shared/render.js"></script>
-    <script src="../shared/fp.js"></script>
-    <script src="popup.js"></script>
   </body>
 </html>

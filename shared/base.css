@@ -55,10 +55,6 @@ h3 {
   margin: 10px 0px;
 }
 
-.textAlign-center {
-  text-align: center;
-}
-
 ul {
   list-style-type: none;
 }
@@ -140,6 +136,11 @@ img::before {
 .textStroke-xs { -webkit-text-stroke: 1px black; }
 
 
+/* TEXT */
+.textAlign-center { text-align: center; }
+.textAlign-left { text-align: left; }
+
+
 /* SPACES */
 .padding-none { padding: 0px; }
 .padding-xs { padding: 3px; }
@@ -187,6 +188,7 @@ img::before {
 /* GRID */
 .grid { display: grid; }
 .gridTemplateCol-2 { grid-template-columns: auto auto; }
+.gridTemplateCol-3 { grid-template-columns: 130px 130px 130px; }
 .gridTemplateCol-repeat-xl { grid-template-columns: repeat(auto-fill, 380px); }
 .gridGap-xs { grid-gap: 10px; }
 .gridGap-s { grid-gap: 30px; }

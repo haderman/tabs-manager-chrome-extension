@@ -39,7 +39,7 @@ type CardStatus
 
 type State
     = NoInitated
-    | Started
+    | Idle
     | WorkspaceInUse W.WorkspaceId
 
 
@@ -495,12 +495,12 @@ stringDictToIntDict stringDict =
 
 stateDecoder : Decoder State
 stateDecoder =
-    Decode.oneOf [ workspaceInUseDecoder, startedDecoder ]
+    Decode.oneOf [ workspaceInUseDecoder, idleDecoder ]
 
 
-startedDecoder : Decoder State
-startedDecoder =
-    Decode.succeed Started
+idleDecoder : Decoder State
+idleDecoder =
+    Decode.succeed Idle
 
 
 workspaceInUseDecoder : Decoder State

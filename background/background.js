@@ -26,13 +26,13 @@ const appStates = {
 };
 
 const windowStates = {
-  initial: 'started',
-  started: {
+  initial: 'idle',
+  idle: {
     on: {
       OPEN_WORKSPACE: 'workspaceInUse',
       CREATE_WORKSPACE: 'workspaceInUse',
-      UPDATE_WORKSPACE: 'started',
-      DELETE_WORKSPACE: 'started',
+      UPDATE_WORKSPACE: 'idle',
+      DELETE_WORKSPACE: 'idle',
     }
   },
   workspaceInUse: {

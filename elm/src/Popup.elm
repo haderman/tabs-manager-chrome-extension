@@ -30,15 +30,22 @@ main =
 -- MODEL
 
 
-type State
+type FormStatus
+    = WritingName String
+    | NameConfirmed String
+    | SelectingColor C.Color
+
+
+type Status
     = NoInitated
-    | Started
+    | Idle
     | WorkspaceInUse W.WorkspaceId
+    | CreatingNewWorkspace FormStatus
 
 
 type alias Data =
     { workspacesIds : List W.WorkspaceId
-    , state : State
+    , status : Status
     , workspacesInfo : Dict W.WorkspaceId W.Workspace
     }
 
@@ -49,6 +56,7 @@ type alias Flags =
 
 type alias Model =
     { data : Data
+    , status : Status
     }
 
 
@@ -56,9 +64,10 @@ initModel : Model
 initModel =
     { data =
         { workspacesIds = []
-        , state = NoInitated
         , workspacesInfo = Dict.empty
+        , status = NoInitated
         }
+    , status = NoInitated
     }
 
 
@@ -75,6 +84,7 @@ type Msg
     = NoOp
     | ReceivedDataFromJS (Result Decode.Error Data)
     | OpenWorkspace W.WorkspaceId
+    | OnInputName String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -84,13 +94,30 @@ update msg model =
             ( model, Cmd.none )
 
         ReceivedDataFromJS (Ok data) ->
-            ( { model | data = data }, Cmd.none )
+            ( { model
+                | data = data
+                , status = data.status
+              }
+            , Cmd.none
+            )
 
         ReceivedDataFromJS (Err error) ->
             ( model, Cmd.none )
 
         OpenWorkspace id ->
             ( model, Ports.openWorkspace id )
+
+        OnInputName value ->
+            ( { model
+                | status =
+                    if String.isEmpty value then
+                        Idle
+
+                    else
+                        CreatingNewWorkspace <| WritingName value
+              }
+            , Cmd.none
+            )
 
 
 
@@ -109,8 +136,136 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    div [ class "padding-l" ]
-        [ viewCards model.data ]
+    case model.status of
+        WorkspaceInUse id ->
+            div []
+                [ vieHeaderWorkspaceInUse id model.data
+                , viewCards model.data
+                ]
+
+        NoInitated ->
+            div [ class "flex justifyContent-center alignItems-center" ]
+                [ h2 []
+                    [ text "Loading..." ]
+                ]
+
+        Idle ->
+            div []
+                [ viewHeaderWithInput model
+                , viewCards model.data
+                ]
+
+        CreatingNewWorkspace inputState ->
+            div []
+                [ viewHeaderCreatingWorkspace inputState model
+                , viewCards model.data
+                ]
+
+
+
+-- VIEW HEADER
+
+
+headerStyle : String
+headerStyle =
+    String.join " "
+        [ "full-width"
+        , "height-s"
+        , "background-transparent"
+        , "sticky"
+        , "backdrop-filter-blur"
+        , "boxShadow-black"
+        , "zIndex-4"
+        , "marginBottom-xl"
+        , "flex"
+        , "alignItems-center"
+        , "justifyContent-center"
+        ]
+
+
+vieHeaderWorkspaceInUse : W.WorkspaceId -> Data -> Html Msg
+vieHeaderWorkspaceInUse id data =
+    let
+        title =
+            case Dict.get id data.workspacesInfo of
+                Just { name, color } ->
+                    h2 [ Html.Attributes.class <| "color-" ++ C.fromColorToString color ]
+                        [ Html.text name ]
+
+                Nothing ->
+                    Html.text ""
+    in
+    div [ class headerStyle ]
+        [ title ]
+
+
+viewHeaderWithInput : Model -> Html Msg
+viewHeaderWithInput model =
+    div [ class headerStyle ]
+        [ input
+            [ class inputStyle
+            , selected True
+            , autofocus True
+            , onInput OnInputName
+            ]
+            []
+        ]
+
+
+viewHeaderCreatingWorkspace : FormStatus -> Model -> Html Msg
+viewHeaderCreatingWorkspace status model =
+    let
+        headerStyle_ =
+            "background-secondary"
+
+        content =
+            case status of
+                WritingName value ->
+                    input
+                        [ class inputStyle
+                        , selected True
+                        , autofocus True
+                        , Html.Attributes.value value
+                        , onInput OnInputName
+                        ]
+                        []
+
+                _ ->
+                    text ""
+    in
+    div [ class <| headerStyle ++ " " ++ headerStyle_ ]
+        [ content ]
+
+
+
+-- VIEW HEADER HELPERS
+
+
+inputStyle : String
+inputStyle =
+    "fontSize-l background-transparent marginTop-none marginBottom-m fontWeight-200 color-contrast padding-xs textAlign-center"
+
+
+
+-- VIEW CONTENT
+
+
+viewContent : Model -> Html Msg
+viewContent { data } =
+    case data.workspacesIds of
+        [] ->
+            viewEmptyWorkspacesListMessage
+
+        _ ->
+            viewCards data
+
+
+viewEmptyWorkspacesListMessage : Html Msg
+viewEmptyWorkspacesListMessage =
+    div [ class "flex justifyContent-center alignItems-center" ]
+        [ h2 [ class "color-contrast" ]
+            [ text "NO HAY WORKSPACES" ]
+        ]
 
 
 viewCards : Data -> Html Msg
@@ -127,7 +282,7 @@ viewCards data =
                 Nothing ->
                     text ""
     in
-    div [ class "grid gridTemplateCol-3 gridGap-xs" ]
+    div [ class "grid gridTemplateCol-3 gridGap-xs padding-l" ]
         (data.workspacesIds
             |> List.map getWorkspace
             |> List.map viewCardOrEmptyText
@@ -189,17 +344,17 @@ stringDictToIntDict stringDict =
         stringDict
 
 
-stateDecoder : Decoder State
+stateDecoder : Decoder Status
 stateDecoder =
-    Decode.oneOf [ workspaceInUseDecoder, startedDecoder ]
+    Decode.oneOf [ workspaceInUseDecoder, idleDecoder ]
 
 
-startedDecoder : Decoder State
-startedDecoder =
-    Decode.succeed Started
+idleDecoder : Decoder Status
+idleDecoder =
+    Decode.succeed Idle
 
 
-workspaceInUseDecoder : Decoder State
+workspaceInUseDecoder : Decoder Status
 workspaceInUseDecoder =
     Decode.map WorkspaceInUse <|
         Decode.field "workspaceInUse" Decode.int

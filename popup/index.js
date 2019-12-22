@@ -11,15 +11,16 @@ function onLoad() {
       function(message, sender, sendResponse) {
         switch (message.type) {
         case 'MODEL_UPDATED':
-          console.log('model updated: ', message.payload);
           const { modelsByWindowsID, data } = message.payload;
           const { __workspaces_ids__, ...workspacesInfo } = data;
+          const payload = {
+            workspaces: __workspaces_ids__.filter(i => i !== null),
+            workspacesInfo: workspacesInfo,
+            status: modelsByWindowsID[window.id]
+          }
+          console.log('payload: ', payload)
           app.ports.receivedDataFromJS.send({
-            data: {
-              workspaces: __workspaces_ids__.filter(i => i !== null),
-              workspacesInfo: workspacesInfo,
-              status: modelsByWindowsID[window.id]
-            }
+            data: payload
           });
           return;
         }
@@ -37,7 +38,7 @@ function onLoad() {
     app.ports.deleteWorkspace.subscribe(function (workspaceId) {
       chrome.extension.sendMessage({ type: 'delete_workspace', payload: workspaceId, window });
     });
-  }); 
+  });
 }
 
 document.addEventListener('DOMContentLoaded', function() {

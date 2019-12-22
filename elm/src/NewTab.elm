@@ -7,7 +7,6 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Decode exposing (..)
-import Json.Encode as Encode exposing (..)
 import Ports
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
@@ -242,7 +241,7 @@ viewCards cards { workspacesInfo } =
             else
                 ( -1, cardStatus )
 
-        removeCardsOfOtherCols ( id, cardStatus ) =
+        removeCardsOfOtherCols ( id, _ ) =
             not (id == -1)
 
         createCard =

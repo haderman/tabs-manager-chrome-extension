@@ -7,7 +7,6 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Decode exposing (..)
-import Json.Encode as Encode exposing (..)
 import Ports
 import Workspace as W
 
@@ -30,15 +29,23 @@ main =
 -- MODEL
 
 
+type alias FormData =
+    { name : String
+    , color : C.Color
+    , status : FormStatus
+    }
+
+
 type FormStatus
-    = WritingName String
-    | NameConfirmed String
-    | SelectingColor C.Color
+    = Empty
+    | Filled
+    | WithErrors
 
 
 type Status
     = NoInitated
     | Idle
+    | NoData
     | WorkspaceInUse W.WorkspaceId
     | CreatingNewWorkspace FormStatus
 
@@ -57,6 +64,7 @@ type alias Flags =
 type alias Model =
     { data : Data
     , status : Status
+    , formData : FormData
     }
 
 
@@ -68,6 +76,11 @@ initModel =
         , status = NoInitated
         }
     , status = NoInitated
+    , formData =
+        { name = ""
+        , color = C.Green
+        , status = Empty
+        }
     }
 
 
@@ -80,11 +93,16 @@ init flags =
 -- UPDATE
 
 
+type FormMsg
+    = ChangeName String
+    | ChangeColor C.Color
+
+
 type Msg
     = NoOp
     | ReceivedDataFromJS (Result Decode.Error Data)
     | OpenWorkspace W.WorkspaceId
-    | OnInputName String
+    | UpdateForm FormMsg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -101,23 +119,52 @@ update msg model =
             , Cmd.none
             )
 
-        ReceivedDataFromJS (Err error) ->
+        ReceivedDataFromJS (Err _) ->
             ( model, Cmd.none )
 
         OpenWorkspace id ->
             ( model, Ports.openWorkspace id )
 
-        OnInputName value ->
+        UpdateForm formMsg ->
+            updateForm formMsg model
+
+
+updateForm : FormMsg -> Model -> ( Model, Cmd Msg )
+updateForm formMsg model =
+    case formMsg of
+        ChangeName value ->
             ( { model
-                | status =
+                | formData = setName value model.formData
+                , status =
                     if String.isEmpty value then
                         Idle
-
                     else
-                        CreatingNewWorkspace <| WritingName value
+                        CreatingNewWorkspace model.formData.status
               }
             , Cmd.none
             )
+
+        ChangeColor color ->
+            ( { model | formData = setColor color model.formData }, Cmd.none )
+
+
+
+-- UPDATE FORM HELPERS
+
+
+setName : String -> FormData -> FormData
+setName name_ formData =
+    { formData | name = name_ }
+
+
+setColor : C.Color -> FormData -> FormData
+setColor color_ formData =
+    { formData | color = color_ }
+
+
+setStatus : FormStatus -> FormData -> FormData
+setStatus status_ formData =
+    { formData | status = status_ }
 
 
 
@@ -125,7 +172,7 @@ update msg model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.batch
         [ Ports.receivedDataFromJS (Decode.decodeValue dataDecoder >> ReceivedDataFromJS) ]
 
@@ -150,16 +197,21 @@ view model =
                 ]
 
         Idle ->
-            div []
-                [ viewHeaderWithInput model
-                , viewCards model.data
-                ]
+            viewWorkspaceForm model.formData
+            -- div []
+            --     [ viewHeaderWithInput model
+            --     , viewCards model.data
+            --     ]
 
-        CreatingNewWorkspace inputState ->
-            div []
-                [ viewHeaderCreatingWorkspace inputState model
-                , viewCards model.data
-                ]
+        CreatingNewWorkspace _ ->
+            viewWorkspaceForm model.formData
+            -- div []
+            --     [ viewWorkspaceForm model.formData
+            --     , viewCards model.data
+            --     ]
+
+        NoData ->
+            viewWorkspaceForm model.formData
 
 
 
@@ -206,7 +258,7 @@ viewHeaderWithInput model =
             [ class inputStyle
             , selected True
             , autofocus True
-            , onInput OnInputName
+            , onInput (\_ -> NoOp)
             ]
             []
         ]
@@ -220,13 +272,13 @@ viewHeaderCreatingWorkspace status model =
 
         content =
             case status of
-                WritingName value ->
+                Empty ->
                     input
                         [ class inputStyle
                         , selected True
                         , autofocus True
-                        , Html.Attributes.value value
-                        , onInput OnInputName
+                        , Html.Attributes.value model.formData.name
+                        , onInput (\_ -> NoOp)
                         ]
                         []
 
@@ -311,6 +363,95 @@ viewCard workspace =
 
 
 
+viewWorkspaceForm : FormData -> Html Msg
+viewWorkspaceForm { name, color, status } =
+    let
+        containerStyle =
+            String.join " "
+                [ "flex"
+                , "flexDirection-col"
+                , "justifyContent-center"
+                , "alignItems-center"
+                , "ackdrop-filter-blur"
+                , "padding-xl"
+                ]
+
+        help =
+            case status of
+                Empty ->
+                    "Form empty"
+
+                Filled ->
+                    "Form listo para guardar"
+
+                _ ->
+                    "Otro estado"
+
+
+
+
+
+    in
+    div [ class containerStyle ]
+        [ input
+            [ class <| inputStyle ++ " marginBottom-l color-" ++ C.fromColorToString color
+            , selected True
+            , autofocus True
+            , Html.Attributes.value name
+            , onInput
+                (\value ->
+                    UpdateForm <| ChangeName value
+                )
+            ]
+            []
+        , viewRadioGroupColors color
+        , p [ class "color-contrast marginBottom-l" ]
+            [ text help ]
+        , button [ class "padding-m rounded background-secondary color-contrast" ]
+            [ text "Save" ]
+        ]
+
+
+viewRadioGroupColors : C.Color -> Html Msg
+viewRadioGroupColors color =
+    let
+        radio color_ =
+            let
+                isChecked =
+                    color_ == color
+
+                stringColor =
+                    C.fromColorToString color_
+
+                handleOnInput value =
+                    UpdateForm <| ChangeColor <| C.fromStringToColor value
+            in
+            label [ Html.Attributes.class "radioLabel" ]
+                [ input
+                    [ Html.Attributes.type_ "radio"
+                    , Html.Attributes.name stringColor
+                    , Html.Attributes.class "absolute width-0 height-0"
+                    , checked isChecked
+                    , Html.Attributes.value stringColor
+                    , onInput handleOnInput
+                    ]
+                    []
+                , span [ Html.Attributes.class <| "checkmark background-" ++ stringColor ] []
+                ]
+    in
+    div [ Html.Attributes.class "flex opacity-70" ]
+        [ radio C.Green
+        , radio C.Blue
+        , radio C.Orange
+        , radio C.Purple
+        , radio C.Yellow
+        , radio C.Red
+        , radio C.Gray
+        , radio C.Cyan
+        ]
+
+
+
 -- DECODERS
 
 
@@ -346,15 +487,26 @@ stringDictToIntDict stringDict =
 
 stateDecoder : Decoder Status
 stateDecoder =
-    Decode.oneOf [ workspaceInUseDecoder, idleDecoder ]
-
-
-idleDecoder : Decoder Status
-idleDecoder =
-    Decode.succeed Idle
+    Decode.oneOf [ workspaceInUseDecoder, otherStateDecoder ]
 
 
 workspaceInUseDecoder : Decoder Status
 workspaceInUseDecoder =
     Decode.map WorkspaceInUse <|
         Decode.field "workspaceInUse" Decode.int
+
+
+otherStateDecoder : Decoder Status
+otherStateDecoder =
+    Decode.field "state" Decode.string |> Decode.andThen statusFromString
+
+
+statusFromString : String -> Decoder Status
+statusFromString status =
+    case status of
+        "noData" ->
+            Decode.succeed NoData
+
+        _ ->
+            Decode.succeed Idle
+

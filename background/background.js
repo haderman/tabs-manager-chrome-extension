@@ -3,6 +3,12 @@
 const chromePromise = new ChromePromise();
 const logger = createLogger();
 
+let model = {
+  idsOfWindowsOpened: [],
+  machinesByWindowsID: {},
+  data: {}
+};
+
 const appStates = {
   initial: 'loadingApp',
   loadingApp: {
@@ -25,28 +31,37 @@ const appStates = {
   },
 };
 
-const windowStates = {
-  initial: 'idle',
-  idle: {
-    on: {
-      OPEN_WORKSPACE: 'workspaceInUse',
-      CREATE_WORKSPACE: 'workspaceInUse',
-      UPDATE_WORKSPACE: 'idle',
-      DELETE_WORKSPACE: 'idle',
-    }
-  },
-  workspaceInUse: {
-    on: {
-      OPEN_WORKSPACE: 'workspaceInUse',
-      UPDATE_WORKSPACE: 'workspaceInUse',
-      DELETE_WORKSPACE: 'workspaceInUse',
+function createWindowStates() {
+  const IfNoData = model.data.__workspaces_ids__.length === 0;
+
+  return {
+    initial: IfNoData ? 'noData' : 'idle',
+    idle: {
+      on: {
+        OPEN_WORKSPACE: 'workspaceInUse',
+        CREATE_WORKSPACE: 'workspaceInUse',
+        UPDATE_WORKSPACE: 'idle',
+        DELETE_WORKSPACE: 'idle',
+      }
+    },
+    noData: {
+      on: {
+        CREATE_WORKSPACE: 'workspaceInUse',
+      }
+    },
+    workspaceInUse: {
+      on: {
+        OPEN_WORKSPACE: 'workspaceInUse',
+        UPDATE_WORKSPACE: 'workspaceInUse',
+        DELETE_WORKSPACE: 'workspaceInUse',
+      }
     }
   }
 };
 
 function createMachine(states) {
   let currentState = states.initial;
-  
+
   const _setState = state => { currentState = state; };
   const _isEventAvailable = event => event in states[currentState].on;
 
@@ -70,12 +85,6 @@ function createMachine(states) {
 
 const appMachine = createMachine(appStates);
 
-let model = {
-  idsOfWindowsOpened: [],
-  machinesByWindowsID: {},
-  data: {}
-};
-
 function setModel(newModelV2) {
   if (model !== newModelV2) {
     model = newModelV2;
@@ -83,7 +92,7 @@ function setModel(newModelV2) {
       broadcast(model);
     }
   }
-} 
+}
 
 init();
 
@@ -139,9 +148,9 @@ async function checkOpenedWindows() {
 
   let modelsByWindowsID = {},
       machinesByWindowsID = {};
-      
+
   windowsOpenedIDs.forEach(id => {
-    const machine = createMachine(windowStates);
+    const machine = createMachine(createWindowStates());
     machinesByWindowsID[id] = machine;
     modelsByWindowsID[id] = { state: machine.getCurrentState() };
   });
@@ -161,7 +170,7 @@ function subscribeEvents() {
 function handleWindowsCreated(window) {
   const { id } = window;
   const { machinesByWindowsID, modelsByWindowsID, windowsOpenedIDs } = model;
-  const machine = createMachine(windowStates);
+  const machine = createMachine(createWindowStates());
   setModel({
     ...model,
     machinesByWindowsID: {
@@ -181,7 +190,7 @@ function handleWindowsCreated(window) {
 function handleOnMessages(request, sender, sendResponse) {
   const { type, payload, window } = request;
   logMessage(type, payload, window);
-  
+
   if (appMachine.getCurrentState() !== 'appLoaded') return;
 
   if (type === 'popup_opened' || type === 'newtab_opened') {
@@ -260,7 +269,7 @@ function handleOnMessages(request, sender, sendResponse) {
       const dataCopy = { ...model.data };
       dataCopy.__workspaces_ids__ = workspacesIds;
       delete dataCopy[payload];
-  
+
       setModel({
         ...model,
         data: dataCopy
@@ -279,7 +288,7 @@ function broadcast(model) {
 
 async function openWorkspace(workspaceId, window) {
   const getWorkspaceInUse = compose(prop('workspaceInUse'), prop(window.id), prop('modelsByWindowsID'));
-  
+
   const workspaceToSave = model => {
     const workspaceInUse = getWorkspaceInUse(model);
     if (workspaceInUse) {
@@ -292,7 +301,7 @@ async function openWorkspace(workspaceId, window) {
       color: 'gray'
     };
   };
-  
+
   const currentlyOpenTabs = await api.Tabs.get(window.id);
   const tabsToOpen = await api.Workspaces.get(workspaceId)
     .then(prop('tabs'))
@@ -301,12 +310,12 @@ async function openWorkspace(workspaceId, window) {
     .catch(err => {
       console.warn('Error getting workspace data from storage: ', err);
     });
-  
+
   await api.Tabs.create(tabsToOpen);
   await api.Tabs.remove(currentlyOpenTabs.map(prop('id')));
-  
+
   const [id, data] = await api.Workspaces.save(workspaceToSave(model), currentlyOpenTabs);
-  
+
   return [workspaceId, data];
 }
 

@@ -12,7 +12,6 @@ type alias WorkspaceId =
 type alias Workspace =
     { id : WorkspaceId
     , color : C.Color
-    , key : String
     , name : String
     , tabs : List Tab
     }
@@ -31,10 +30,9 @@ type alias Tab =
 
 decode : D.Decoder Workspace
 decode =
-    D.map5 Workspace
+    D.map4 Workspace
         (D.field "id" D.int)
         (D.field "color" C.decoder)
-        (D.field "key" D.string)
         (D.field "name" D.string)
         (D.field "tabs" tabListDecoder)
 
@@ -60,7 +58,6 @@ encode : Workspace -> E.Value
 encode workspace =
     E.object
         [ ( "id", E.int workspace.id )
-        , ( "key", E.string workspace.key )
         , ( "name", E.string workspace.name )
         , ( "color", E.string <| C.fromColorToString workspace.color )
         , ( "tabs", E.list encodeTab workspace.tabs )

@@ -3,6 +3,7 @@ port module Ports exposing
     , openWorkspace
     , receivedDataFromJS
     , updateWorkspace
+    , createWorkspace
     )
 
 import Json.Decode as D
@@ -20,6 +21,9 @@ port updateWorkspace : E.Value -> Cmd msg
 
 
 port deleteWorkspace : Int -> Cmd msg
+
+
+port createWorkspace : ( String, String ) -> Cmd msg
 
 
 

@@ -1,6 +1,7 @@
 module Popup exposing (..)
 
 import Browser
+import Browser.Events exposing (onKeyPress)
 import Color as C
 import Dict exposing (Dict)
 import Html exposing (..)
@@ -26,7 +27,23 @@ main =
 
 
 
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Sub.batch
+        [ Ports.receivedDataFromJS (Decode.decodeValue dataDecoder >> ReceivedDataFromJS)
+        , onKeyPress keyDecoder
+        ]
+
+
+
 -- MODEL
+
+type Key
+    = Enter
+    | Other
 
 
 type alias FormData =
@@ -47,7 +64,7 @@ type Status
     | Idle
     | NoData
     | WorkspaceInUse W.WorkspaceId
-    | CreatingNewWorkspace FormStatus
+    | CreatingNewWorkspace
 
 
 type alias Data =
@@ -103,6 +120,8 @@ type Msg
     | ReceivedDataFromJS (Result Decode.Error Data)
     | OpenWorkspace W.WorkspaceId
     | UpdateForm FormMsg
+    | ButtonCreatePressed
+    | KeyPressed Key
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -128,24 +147,66 @@ update msg model =
         UpdateForm formMsg ->
             updateForm formMsg model
 
+        ButtonCreatePressed ->
+            ( { model | status = CreatingNewWorkspace }, Cmd.none )
+
+        KeyPressed key ->
+            handleKeyPressed key model
+
 
 updateForm : FormMsg -> Model -> ( Model, Cmd Msg )
 updateForm formMsg model =
     case formMsg of
         ChangeName value ->
-            ( { model
-                | formData = setName value model.formData
-                , status =
+            let
+                formStatus =
                     if String.isEmpty value then
-                        Idle
+                        Empty
                     else
-                        CreatingNewWorkspace model.formData.status
+                        Filled
+            in
+            ( { model
+                | formData =
+                    model.formData
+                        |> setName value
+                        |> setStatus formStatus
               }
             , Cmd.none
             )
 
         ChangeColor color ->
             ( { model | formData = setColor color model.formData }, Cmd.none )
+
+
+handleKeyPressed : Key -> Model -> ( Model, Cmd Msg )
+handleKeyPressed key model =
+    case key of
+        Enter ->
+            case model.status of
+                NoData ->
+                    ( { model | status = CreatingNewWorkspace }, Cmd.none )
+
+                CreatingNewWorkspace ->
+                    case model.formData.status of
+                        Empty ->
+                            ( { model | formData = setStatus WithErrors model.formData }, Cmd.none )
+
+                        Filled ->
+                            let
+                                payload =
+                                    ( model.formData.name, C.fromColorToString model.formData.color )
+                            in
+                            ( model, Ports.createWorkspace payload )
+
+                        _ ->
+                            ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+
+        Other ->
+            ( model, Cmd.none )
 
 
 
@@ -165,16 +226,6 @@ setColor color_ formData =
 setStatus : FormStatus -> FormData -> FormData
 setStatus status_ formData =
     { formData | status = status_ }
-
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.batch
-        [ Ports.receivedDataFromJS (Decode.decodeValue dataDecoder >> ReceivedDataFromJS) ]
 
 
 
@@ -203,7 +254,7 @@ view model =
             --     , viewCards model.data
             --     ]
 
-        CreatingNewWorkspace _ ->
+        CreatingNewWorkspace->
             viewWorkspaceForm model.formData
             -- div []
             --     [ viewWorkspaceForm model.formData
@@ -211,7 +262,30 @@ view model =
             --     ]
 
         NoData ->
-            viewWorkspaceForm model.formData
+            viewNoData
+
+
+
+viewNoData : Html Msg
+viewNoData =
+    let
+        greet =
+            "Welcome!"
+
+        help =
+            "Aun no tienes Workspaces creados, pressiona Enter o Click en el boton Crear"
+    in
+    div [ class "flex flexDirection-col justifyContent-center alignItems-center padding-xl alignText-center" ]
+        [ h3 [ class "color-alternate" ]
+            [ text greet ]
+        , p [ class "color-contrast marginBottom-l" ]
+            [ text help ]
+        , button
+            [ class "padding-m background-alternate color-contrast fontSize-s rounded"
+            , onClick ButtonCreatePressed
+            ]
+            [ text "Create"]
+        ]
 
 
 
@@ -384,13 +458,8 @@ viewWorkspaceForm { name, color, status } =
                 Filled ->
                     "Form listo para guardar"
 
-                _ ->
-                    "Otro estado"
-
-
-
-
-
+                WithErrors ->
+                    "Ingresa un nombre primero"
     in
     div [ class containerStyle ]
         [ input
@@ -510,3 +579,18 @@ statusFromString status =
         _ ->
             Decode.succeed Idle
 
+
+keyDecoder : Decoder Msg
+keyDecoder =
+    Decode.map (toKey >> KeyPressed) <|
+        Decode.field "key" Decode.string
+
+
+toKey : String -> Key
+toKey str =
+    case str of
+        "Enter" ->
+            Enter
+
+        _ ->
+            Other

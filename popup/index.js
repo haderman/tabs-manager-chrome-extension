@@ -31,12 +31,9 @@ function onLoad() {
       chrome.extension.sendMessage({ type: 'use_workspace', payload: workspaceId, window });
     });
 
-    app.ports.updateWorkspace.subscribe(function (workspaceProxy) {
-      chrome.extension.sendMessage({ type: 'update_workspace', payload: workspaceProxy, window });
-    });
-
-    app.ports.deleteWorkspace.subscribe(function (workspaceId) {
-      chrome.extension.sendMessage({ type: 'delete_workspace', payload: workspaceId, window });
+    app.ports.createWorkspace.subscribe(function ([name, color]) {
+      const payload = { name, color }
+      chrome.extension.sendMessage({ type: 'create_workspace', payload, window });
     });
   });
 }

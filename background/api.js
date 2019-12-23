@@ -1,9 +1,8 @@
 /**
  * @typedef {Object} Workspace
  * @property {string} name name of workspace
- * @property {string} key
  * @property {string} color
- * 
+ *
  * @typedef {Object} Tab
  * @property {string} title
  */
@@ -16,14 +15,14 @@ const api = {
      * @param {Array.<Tab>} tabs
      * @returns {Object} data saved
      */
-    save: ({ id, name, key, color }, tabs) =>
+    save: ({ id, name, color }, tabs) =>
       api.Workspaces.getIds()
         .then(ids => {
           const id_ = id === undefined ? generateId(ids) : id;
           return [
-            id_, 
+            id_,
             {
-              [id_]: { tabs, name, key, color, id: id_ },
+              [id_]: { tabs, name, color, id: id_ },
               __workspaces_ids__: [id_, ...ids].filter(onlyUnique)
             }
           ]
@@ -39,15 +38,15 @@ const api = {
       await chromePromise.storage.sync.set({ __workspaces_ids__: filteredIds });
       return filteredIds;
     },
-    update: async ({ id, name, key, color }, tabs) => {
+    update: async ({ id, name, color }, tabs) => {
       if (id === undefined) {
         throw "Error in update workspace, id is undefined";
       }
 
       const data = {
-        [id]: { tabs, name, key, color, id: id }
+        [id]: { tabs, name, color, id: id }
       };
-      
+
       await chromePromise.storage.sync.set(data);
       return [id, data];
     },

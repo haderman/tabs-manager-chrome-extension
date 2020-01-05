@@ -68,7 +68,7 @@ img::before {
   content: ' ';
   position: absolute;
   height: inherit;
-  width: inherit;  
+  width: inherit;
 }
 
 .display-none {
@@ -100,7 +100,7 @@ img::before {
 
 /* PALETTE COLORS */
 /* the same order (top -> bottom) than https://colorhunt.co/palette/2763 */
-.background-transparent { background-color: transparent; } 
+.background-transparent { background-color: transparent; }
 .background-primary { background-color: #111112; }
 .background-secondary { background-color: #393e46; }
 .background-contrast { background-color: #eeeeee; }
@@ -210,7 +210,7 @@ img::before {
 
 .block { display: block; }
 
-/* ALIGNING */ 
+/* ALIGNING */
 .alignItems-center { align-items: center; }
 .justifyContent-center { justify-content: center; }
 .justifyContent-space-between { justify-content: space-between; }
@@ -238,7 +238,7 @@ img::before {
 .ellipsis { text-overflow: ellipsis; }
 .whiteSpace-nowrap { white-space: nowrap; }
 
-.overflowHidden { overflow: hidden; }
+.overflow-hidden { overflow: hidden; }
 .overflow-auto { overflow: auto; }
 
 .pointerEvents-none {
@@ -248,7 +248,7 @@ img::before {
 }
 
 .cursor-rocket {
-  cursor: url("../assets/rocket.svg"), auto; 
+  cursor: url("../assets/rocket.svg"), auto;
 }
 
 /* https://codepen.io/haderman/pen/GRRrxed?editors=1100 */
@@ -260,7 +260,7 @@ img::before {
     radial-gradient(at bottom, rgba(51,51,153, 1) 40%, transparent 70%) bottom;
 	background-repeat: no-repeat;
 	background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
-	
+
 	/* Opera doesn’t support this in the shorthand */
 	background-attachment: local, local, scroll, scroll;
 }
@@ -441,7 +441,5 @@ img::before {
     border: 1px solid white;
   }
 
+.filter-gooey { filter: url(#gooey); }
 
-.filter-gooey {
-  filter: url(#gooey);
-}

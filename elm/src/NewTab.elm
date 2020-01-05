@@ -427,7 +427,7 @@ viewTab { title, url, icon } =
             , Html.Attributes.class "width-xs height-xs beforeBackgroundColor-secondary marginRight-s beforeBackgroundColor-secondary"
             ]
             []
-        , span [ Html.Attributes.class "flex-1 ellipsis overflowHidden whiteSpace-nowrap color-contrast" ]
+        , span [ Html.Attributes.class "flex-1 ellipsis overflow-hidden whiteSpace-nowrap color-contrast" ]
             [ Html.text title ]
         ]
 

@@ -5,6 +5,7 @@ import Browser.Dom as Dom
 import Browser.Events exposing (onKeyDown)
 import Color as C
 import Dict exposing (Dict)
+import FontAwesome exposing (icon, gitHub)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -82,13 +83,13 @@ type Status
     | Idle
     | NoData
     | WorkspaceInUse W.WorkspaceId
-    | CreatingNewWorkspace
 
 
 type alias Data =
     { workspacesIds : List W.WorkspaceId
     , status : Status
     , workspacesInfo : Dict W.WorkspaceId W.Workspace
+    , numTabsInUse : Int
     }
 
 
@@ -125,6 +126,7 @@ initModel =
         { workspacesIds = []
         , workspacesInfo = Dict.empty
         , status = NoInitiated
+        , numTabsInUse = 0
         }
     , status = NoInitiated
     , formCardStatus = Collapsed
@@ -175,6 +177,11 @@ update msg model =
             ( { model
                 | data = data
                 , status = data.status
+                , formCardStatus =
+                    if data.status == NoData then
+                        Expanded
+                    else
+                        Collapsed
               }
             , Cmd.none
             )
@@ -187,9 +194,6 @@ update msg model =
 
         UpdateForm formMsg ->
             updateForm formMsg model
-
-        ButtonCreatePressed ->
-            ( { model | status = CreatingNewWorkspace }, Cmd.none )
 
         ButtonSavePressed ->
             tryToSaveWorkspace model
@@ -296,9 +300,6 @@ enterPressed : Model -> ( Model, Cmd Msg )
 enterPressed model =
     case model.status of
         NoData ->
-            tryToSaveWorkspace model
-
-        CreatingNewWorkspace ->
             tryToSaveWorkspace model
 
         Idle ->
@@ -427,77 +428,67 @@ view : Model -> Html Msg
 view model =
     case model.status of
         WorkspaceInUse id ->
-            viewWorkspaceInUse id model.data
+            let
+                idInUse id_ =
+                    not (id_ == id)
+
+                workspacesIds =
+                    List.filter idInUse model.data.workspacesIds
+            in
+            div []
+                [ vieHeaderWorkspaceInUse id model.data
+                , viewCards workspacesIds model.data.workspacesInfo
+                , viewFooter model
+                ]
 
         NoInitiated ->
-            viewNoInitiated
+            div [ class "flex justifyContent-center alignItems-center" ]
+                [ h2 [ class "color-contrast" ]
+                    [ text "Loading..." ]
+                ]
 
         Idle ->
-            viewIdle model
+            case model.formCardStatus of
+                Collapsed ->
+                    div []
+                        [ viewFormCollapsed
+                        , viewCards model.data.workspacesIds model.data.workspacesInfo
+                        , viewFooter model
+                        ]
 
-        CreatingNewWorkspace ->
-            viewFormExpanded model.formData model.colorList
+                Expanded ->
+                    div []
+                        [ viewFormExpanded model.formData model.colorList
+                        , viewFooter model
+                        ]
 
         NoData ->
-            viewNoData model.formData model.colorList
+            let
+                wavingHand =
+                    "\u{1F44B}"
 
-
-viewWorkspaceInUse : W.WorkspaceId -> Data -> Html Msg
-viewWorkspaceInUse id data =
-    let
-        idInUse id_ =
-            not (id_ == id)
-
-        workspacesIds =
-            List.filter idInUse data.workspacesIds
-    in
-    div []
-        [ vieHeaderWorkspaceInUse id data
-        , viewCards workspacesIds data.workspacesInfo
-        ]
-
-
-viewNoInitiated : Html Msg
-viewNoInitiated =
-    div [ class "flex justifyContent-center alignItems-center" ]
-        [ h2 [ class "color-contrast" ]
-            [ text "Loading..." ]
-        ]
-
-
-viewIdle : Model -> Html Msg
-viewIdle { data, formData, formCardStatus, colorList } =
-    case formCardStatus of
-        Collapsed ->
-            div []
-                [ viewFormCollapsed formData
-                , viewCards data.workspacesIds data.workspacesInfo
+                greet =
+                    div [ class "color-contrast fontSize-m textAlign-center" ]
+                        [ p []
+                            [ text <| wavingHand ++ " You are using "
+                            , span [ class "color-alternate" ]
+                                [ text <| String.fromInt model.data.numTabsInUse ++ " Tabs" ]
+                            ]
+                        , p []
+                            [ text "To save it just type a "
+                            , span [ class "color-alternate" ]
+                                [ text "Name " ]
+                            , text "and press "
+                            , span [ class "color-alternate" ]
+                                [ text "Enter" ]
+                            ]
+                        ]
+            in
+            div [ class "relative flex flexDirection-col justifyContent-center alignItems-center padding-xl alignText-center" ]
+                [ greet
+                , viewFormExpanded model.formData model.colorList
+                , viewFooter model
                 ]
-
-        Expanded ->
-            div []
-                [ viewFormExpanded formData colorList
-                , viewCards data.workspacesIds data.workspacesInfo
-                ]
-
-
-
-viewNoData : FormData -> List C.Color -> Html Msg
-viewNoData formData colorList =
-    let
-        greet =
-            "Welcome!"
-
-        help =
-            "Aun no tienes Workspaces creados, pressiona Enter o Click en el boton Crear"
-    in
-    div [ class "flex flexDirection-col justifyContent-center alignItems-center padding-xl alignText-center" ]
-        [ h3 [ class "color-alternate" ]
-            [ text greet ]
-        , p [ class "color-contrast marginBottom-l" ]
-            [ text help ]
-        , viewFormExpanded formData colorList
-        ]
 
 
 
@@ -597,16 +588,16 @@ viewCard workspace =
 -- FORM
 
 
-viewFormCollapsed : FormData -> Html Msg
-viewFormCollapsed { name, color, status } =
+viewFormCollapsed : Html Msg
+viewFormCollapsed =
     div [ class formContainerStyle ]
         [ input
-            [ class <| inputStyle ++ " marginBottom-l color-" ++ C.fromColorToString color
+            [ class <| inputStyle ++ " marginBottom-l"
             , type_ "text"
+            , placeholder "Type a Name"
             , id "input-workspace-name"
             , selected True
             , autofocus True
-            , Html.Attributes.value name
             , onBlur ElementBlurred
             , onFocus <| ElementFocused WorkspaceNameInputFocused
             , onInput
@@ -615,17 +606,16 @@ viewFormCollapsed { name, color, status } =
                 )
             ]
             []
-        , p [ class "color-contrast marginBottom-l" ]
-            [ text <| formHelpText status ]
         ]
 
 
 viewFormExpanded : FormData -> List C.Color -> Html Msg
-viewFormExpanded { name, color, status } colorList =
+viewFormExpanded { name, color } colorList =
     div [ class formContainerStyle ]
         [ input
             [ class <| inputStyle ++ " marginBottom-l color-" ++ C.fromColorToString color
             , type_ "text"
+            , placeholder "Type a Name"
             , id <| fromFocusStatusToElementId WorkspaceNameInputFocused
             , tabindex 0
             , selected True
@@ -639,28 +629,8 @@ viewFormExpanded { name, color, status } colorList =
                 )
             ]
             []
-        , p [ class "color-contrast marginBottom-l" ]
-            [ text <| formHelpText status ]
         , viewRadioGroupColors color colorList
-        , button
-            [ class "padding-m rounded background-secondary color-contrast"
-            , onClick ButtonSavePressed
-            ]
-            [ text "Save" ]
         ]
-
-
-formHelpText : FormStatus -> String
-formHelpText status =
-    case status of
-        Empty ->
-            "Form empty"
-
-        Filled ->
-            "Form listo para guardar"
-
-        WithErrors ->
-            "Ingresa un nombre primero"
 
 
 formContainerStyle : String
@@ -719,7 +689,7 @@ viewRadioGroupColors color colorList =
                 ]
     in
     div
-        [ Html.Attributes.class "flex opacity-70"
+        [ class "flex opacity-70 padding-m"
         , id <| fromFocusStatusToElementId RadioGroupColorsFocused
         , tabindex 1
         , onBlur ElementBlurred
@@ -728,13 +698,133 @@ viewRadioGroupColors color colorList =
         <| List.map radio colorList
 
 
+customOnClick : Msg -> Html.Attribute Msg
+customOnClick msg =
+    Html.Events.custom
+        "onInput"
+        (Decode.succeed
+            { stopPropagation = True
+            , preventDefault = True
+            , message = msg
+            }
+        )
+
 
 -- VIEW FOOTER
 
 
 viewFooter : Model -> Html Msg
 viewFooter model =
-    div [] []
+    let
+        rootStyle =
+            String.join " "
+                [ "flex"
+                , "justfyContet-space-between"
+                , "alignContent-flexEnd"
+                , "full-width"
+                ]
+
+        helpContainerStyle =
+            String.join " "
+                [ "background-primary"
+                , "full-width"
+                , "flex"
+                , "justifyContent-flexStart"
+                , "alignItems-flexStart"
+                , "height-s"
+                , "flexDirection-colReverse"
+                , "color-contrast"
+                ]
+
+        highlighted =
+            class "color-highlighted"
+
+        arrowLeft =
+            span [ highlighted ]
+                [ text "\u{2190}" ]
+
+        arrowRight =
+            span [ highlighted ]
+                [ text "\u{2192}" ]
+
+        arrowDown =
+            span [ highlighted ]
+                [ text "\u{2193}" ]
+
+        arrowUp =
+            span [ highlighted ]
+                [ text "\u{2191}" ]
+
+        enter =
+            span [ highlighted ]
+                [ text "\u{21B2}" ]
+
+        robot =
+            span [ class "fontSize-s" ]
+                [ text "\u{1F47E}" ]
+
+        formHelp =
+            case model.formData.status of
+                Empty ->
+                    text ""
+
+                Filled ->
+                    p []
+                        [ enter
+                        , text " To save the current tabs"
+                        ]
+
+                WithErrors ->
+                    p []
+                        [ robot
+                        , text "You must to type a name to save the current tabs"
+                        ]
+
+        navigationHelp =
+            case model.focusStatus of
+                WorkspaceNameInputFocused ->
+                    p []
+                        [ arrowDown
+                        , text " To focus the colors group"
+                        ]
+
+                RadioGroupColorsFocused ->
+                    p []
+                        [ arrowUp
+                        , text " To focus the input text and "
+                        , arrowLeft
+                        , arrowRight
+                        , text " To change the color"
+                        ]
+
+                WithoutFocus ->
+                    text ""
+
+        gitHubLink =
+            a
+                [ target "_blank"
+                , href "https://github.com/haderman/tabs-manager-chrome-extension"
+                ]
+                [ img
+                    [ class "height-xs width-xs"
+                    , src "/assets/icons/github-light-32px.png"
+                    ]
+                    []
+                ]
+    in
+    div [ class rootStyle ]
+        [ div [ class helpContainerStyle ]
+            [ navigationHelp
+            , case model.formCardStatus of
+                Collapsed ->
+                    text ""
+
+                Expanded ->
+                    formHelp
+            ]
+        , gitHubLink
+        ]
+
 
 
 -- DECODERS
@@ -743,10 +833,11 @@ viewFooter model =
 dataDecoder : Decoder Data
 dataDecoder =
     Decode.field "data" <|
-        Decode.map3 Data
+        Decode.map4 Data
             (Decode.field "workspaces" (Decode.list Decode.int))
             (Decode.field "status" stateDecoder)
             (Decode.field "workspacesInfo" workspacesInfoDecoder)
+            (Decode.field "numTabs" Decode.int)
 
 
 workspacesInfoDecoder : Decoder (Dict W.WorkspaceId W.Workspace)

@@ -16,7 +16,8 @@ function onLoad() {
           const payload = {
             workspaces: __workspaces_ids__.filter(i => i !== null),
             workspacesInfo: workspacesInfo,
-            status: modelsByWindowsID[window.id]
+            status: modelsByWindowsID[window.id],
+            numTabs: modelsByWindowsID[window.id].numTabs
           }
           console.log('payload: ', payload)
           app.ports.receivedDataFromJS.send({

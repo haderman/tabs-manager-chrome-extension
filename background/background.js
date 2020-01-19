@@ -32,10 +32,10 @@ const appStates = {
 };
 
 function createWindowStates() {
-  const IfNoData = model.data.__workspaces_ids__.length === 0;
+  const ifNoData = model.data.__workspaces_ids__.length === 0;
 
   return {
-    initial: IfNoData ? 'noData' : 'idle',
+    initial: ifNoData ? 'noData' : 'idle',
     idle: {
       on: {
         OPEN_WORKSPACE: 'workspaceInUse',
@@ -149,10 +149,13 @@ async function checkOpenedWindows() {
   let modelsByWindowsID = {},
       machinesByWindowsID = {};
 
-  windowsOpenedIDs.forEach(id => {
+  windowsOpenedIDs.forEach(async id => {
     const machine = createMachine(createWindowStates());
     machinesByWindowsID[id] = machine;
-    modelsByWindowsID[id] = { state: machine.getCurrentState() };
+    modelsByWindowsID[id] = {
+      state: machine.getCurrentState(),
+      numTabs: await api.Tabs.get(id).then(length)
+    };
   });
 
   return {
@@ -165,12 +168,44 @@ async function checkOpenedWindows() {
 function subscribeEvents() {
   chrome.windows.onCreated.addListener(handleWindowsCreated);
   chrome.extension.onMessage.addListener(handleOnMessages);
+  chrome.tabs.onCreated.addListener(handleOnTabCreated);
+  chrome.tabs.onRemoved.addListener(handleOnTabRemoved)
+}
+
+function handleOnTabCreated(tab) {
+  api.Tabs.get(tab.windowId)
+    .then(length)
+    .then(updateCountTabsInModel(tab.windowId));
+}
+
+function handleOnTabRemoved(tabId, { windowId, isWindowClosing }) {
+  if (isWindowClosing) return;
+
+  api.Tabs.get(windowId)
+    .then(length)
+    .then(updateCountTabsInModel(windowId));
+}
+
+function updateCountTabsInModel(windowId) {
+  return numTabs => {
+    setModel({
+      ...model,
+      modelsByWindowsID: {
+        ...model.modelsByWindowsID,
+        [windowId]: {
+          ...model.modelsByWindowsID[windowId],
+          numTabs
+        }
+      },
+    });
+  };
 }
 
 function handleWindowsCreated(window) {
   const { id } = window;
   const { machinesByWindowsID, modelsByWindowsID, windowsOpenedIDs } = model;
   const machine = createMachine(createWindowStates());
+
   setModel({
     ...model,
     machinesByWindowsID: {
@@ -180,11 +215,15 @@ function handleWindowsCreated(window) {
     modelsByWindowsID: {
       ...modelsByWindowsID,
       [id]: {
-        state: machine.getCurrentState()
+        state: machine.getCurrentState(),
       }
     },
     windowsOpenedIDs: [ ...windowsOpenedIDs, id ]
   });
+
+  api.Tabs.get(id)
+    .then(length)
+    .then(updateCountTabsInModel(id));
 }
 
 function handleOnMessages(request, sender, sendResponse) {
@@ -236,7 +275,8 @@ function handleOnMessages(request, sender, sendResponse) {
           ...modelsByWindowsID,
           [window.id]: {
             state: machine.getCurrentState(),
-            workspaceInUse: id
+            workspaceInUse: id,
+            numTabs: length(dataSaved[id].tabs)
           }
         }
       })
@@ -330,6 +370,8 @@ function logMachineEvent(event, currentState, newState) {
       logger.templates.chip(event, { background: '#a7a7a7', color: '#333' })
     ))
     .log(logger.templates.changed(currentState, newState))
+    .log('-model-')
+    .log(model)
     .time()
     .groupEnd();
 }

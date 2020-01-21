@@ -58,6 +58,7 @@ type FocusStatus
     = WithoutFocus
     | WorkspaceNameInputFocused
     | RadioGroupColorsFocused
+    | WorkspaceCardFocused
 
 
 type FormCardStatus
@@ -434,9 +435,32 @@ view model =
 
                 workspacesIds =
                     List.filter idInUse model.data.workspacesIds
+
+                workspaceName =
+                    case Dict.get id model.data.workspacesInfo of
+                        Just { name, color } ->
+                            span [ Html.Attributes.class <| "color-" ++ C.fromColorToString color ]
+                                [ Html.text name ]
+
+                        Nothing ->
+                            Html.text ""
+
+                color_ =
+                    model.data.workspacesInfo
+                        |> Dict.get id
+                        |> Maybe.map .color
+                        |> Maybe.withDefault C.Gray
             in
             div []
-                [ vieHeaderWorkspaceInUse id model.data
+                [ div [ class "height-s flex alignItems-center justifyContent-space-between padding-m" ]
+                    [ span [ class <| "borderBottom-s borderColor-" ++ C.fromColorToString color_ ]
+                        [ span [ class "color-contrast fontSize-xl" ]
+                            [ workspaceName ]
+                        , text " "
+                        , span [ class "color-contrast" ]
+                            [ text <| String.fromInt model.data.numTabsInUse ++ " Tabs" ]
+                        ]
+                    ]
                 , viewCards workspacesIds model.data.workspacesInfo
                 , viewFooter model
                 ]
@@ -450,7 +474,7 @@ view model =
         Idle ->
             case model.formCardStatus of
                 Collapsed ->
-                    div []
+                    div [ id "root" ]
                         [ viewFormCollapsed
                         , viewCards model.data.workspacesIds model.data.workspacesInfo
                         , viewFooter model
@@ -484,52 +508,11 @@ view model =
                             ]
                         ]
             in
-            div [ class "relative flex flexDirection-col justifyContent-center alignItems-center padding-xl alignText-center" ]
+            div [ class "relative flex flexDirection-col justifyContent-center alignItems-stretch padding-xl alignText-center" ]
                 [ greet
                 , viewFormExpanded model.formData model.colorList
                 , viewFooter model
                 ]
-
-
-
--- VIEW HEADER
-
-
-headerStyle : String
-headerStyle =
-    String.join " "
-        [ "height-s"
-        , "background-transparent"
-        , "sticky"
-        , "backdrop-filter-blur"
-        , "boxShadow-black"
-        , "zIndex-4"
-        , "marginBottom-xl"
-        , "flex"
-        , "alignItems-center"
-        , "justifyContent-center"
-        , "padding-xl"
-        ]
-
-
-vieHeaderWorkspaceInUse : W.WorkspaceId -> Data -> Html Msg
-vieHeaderWorkspaceInUse id data =
-    let
-        title =
-            case Dict.get id data.workspacesInfo of
-                Just { name, color } ->
-                    h2 [ Html.Attributes.class <| "color-" ++ C.fromColorToString color ]
-                        [ Html.text name ]
-
-                Nothing ->
-                    Html.text ""
-    in
-    div [ class headerStyle ]
-        [ title ]
-
-
-
--- VIEW HEADER HELPERS
 
 
 viewCards : List W.WorkspaceId -> Dict W.WorkspaceId W.Workspace -> Html Msg
@@ -549,13 +532,13 @@ viewCards workspacesIds workspacesInfo =
     in
     case workspacesIds of
         [] ->
-            div [ class "flex justifyContent-center alignItems-center padding-l" ]
+            div [ class "flex justifyContent-center alignItems-center padding-m" ]
                 [ h3 [ class "color-contrast textAlign-center" ]
-                    [ text "No hay mas workspaces creados"]
+                    [ text "You don't have more workspaces created" ]
                 ]
 
         _ ->
-            div [ class "grid gridTemplateCol-3 gridGap-xs padding-l" ]
+            div [ class "grid gridTemplateCol-3 gridGap-xs padding-m" ]
                 (workspacesIds
                     |> List.map getWorkspace
                     |> List.map viewCardOrEmptyText
@@ -576,8 +559,10 @@ viewCard workspace =
     button
         [ class "background-black padding-m rounded"
         , autofocus False
-        , tabindex 2
+        , tabindex 0
         , onClick <| OpenWorkspace workspace.id
+        , onFocus <| ElementFocused WorkspaceCardFocused
+        , onBlur ElementBlurred
         ]
         [ title workspace.name workspace.color
         , tabsCount <| List.length workspace.tabs
@@ -721,19 +706,22 @@ viewFooter model =
                 [ "flex"
                 , "justfyContet-space-between"
                 , "alignContent-flexEnd"
-                , "full-width"
+                , "padding-m"
+                , "backdrop-filter-blur"
+                , "sticky"
+                , "bottom-0"
+                , "background-transparent"
                 ]
 
         helpContainerStyle =
             String.join " "
-                [ "background-primary"
-                , "full-width"
+                [ "full-width"
                 , "flex"
                 , "justifyContent-flexStart"
                 , "alignItems-flexStart"
-                , "height-s"
                 , "flexDirection-colReverse"
                 , "color-contrast"
+                , "full-height"
                 ]
 
         highlighted =
@@ -783,10 +771,24 @@ viewFooter model =
         navigationHelp =
             case model.focusStatus of
                 WorkspaceNameInputFocused ->
-                    p []
-                        [ arrowDown
-                        , text " To focus the colors group"
-                        ]
+                    case model.formCardStatus of
+                        Collapsed ->
+                            case model.data.workspacesIds of
+                                [] ->
+                                    text ""
+
+                                _ ->
+                                    p []
+                                        [ span [ highlighted ]
+                                            [ text "Tab" ]
+                                        , text " To navigate between workspaces created"
+                                        ]
+
+                        Expanded ->
+                            p []
+                                [ arrowDown
+                                , text " To focus the colors group"
+                                ]
 
                 RadioGroupColorsFocused ->
                     p []
@@ -797,8 +799,34 @@ viewFooter model =
                         , text " To change the color"
                         ]
 
+                WorkspaceCardFocused ->
+                    p []
+                        [ span [ highlighted ]
+                            [ text "Space" ]
+                        , text " or "
+                        , enter
+                        , text " To open the workspace tabs"
+                        ]
+
                 WithoutFocus ->
-                    text ""
+                    case model.status of
+                        WorkspaceInUse _ ->
+                            case List.length model.data.workspacesIds of
+                                0 ->
+                                    text ""
+
+                                1 ->
+                                    text ""
+
+                                _ ->
+                                    p []
+                                        [ span [ highlighted ]
+                                            [ text "Tab" ]
+                                        , text " To navigate between workspaces created"
+                                        ]
+
+                        _ ->
+                            text ""
 
         gitHubLink =
             a
@@ -815,12 +843,7 @@ viewFooter model =
     div [ class rootStyle ]
         [ div [ class helpContainerStyle ]
             [ navigationHelp
-            , case model.formCardStatus of
-                Collapsed ->
-                    text ""
-
-                Expanded ->
-                    formHelp
+            , formHelp
             ]
         , gitHubLink
         ]
@@ -930,4 +953,7 @@ fromFocusStatusToElementId focusStatus =
 
         RadioGroupColorsFocused ->
             "radio-group-colors"
+
+        WorkspaceCardFocused ->
+            ""
 

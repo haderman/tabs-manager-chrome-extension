@@ -4,6 +4,13 @@
   margin: 0;
 }
 
+#root {
+  overflow: auto;
+  width: 430px;
+  min-height: 100px;
+  max-height: 380px;
+}
+
 /* *:focus {
   outline: none;
 }
@@ -93,6 +100,7 @@ img::before {
 .top-0 { top: 0; }
 .left-0 { left: 0; }
 .right-0 { right: 0; }
+.bottom-0 { bottom: 0; }
 
 /* BORDERS */
 .circle { border-radius: 50%; }
@@ -224,6 +232,7 @@ img::before {
 /* ALIGNING */
 .alignContent-flexEnd { align-items: flex-end; }
 .alignItems-center { align-items: center; }
+.alignItems-stretch { align-items: stretch; }
 .justifyContent-center { justify-content: center; }
 .justifyContent-space-between { justify-content: space-between; }
 
@@ -334,11 +343,6 @@ img::before {
 
 .opacity-100 { opacity: 1; }
 .opacity-70 { opacity: 0.7; }
-
-.popupWindow {
-  width: 400px;
-  max-width: 400px;
-}
 
 /* BACKDROPS AND OVERLAYS */
 .backdrop { position: relative; }

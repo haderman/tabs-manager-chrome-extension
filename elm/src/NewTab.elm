@@ -36,23 +36,24 @@ type CardStatus
     | Editing W.Workspace
 
 
-type State
-    = NoInitated
+type Status
+    = NoInitiated
     | Idle
+    | NoData
     | WorkspaceInUse W.WorkspaceId
 
 
 type alias Data =
     { workspacesIds : List W.WorkspaceId
-    , state : State
+    , state : Status
     , workspacesInfo : Dict W.WorkspaceId W.Workspace
     }
 
 
 type alias Model =
     { data : Data
-    , test : String
     , cards : List ( W.WorkspaceId, CardStatus )
+    , status : Status
     }
 
 
@@ -64,11 +65,11 @@ initModel : Model
 initModel =
     { data =
         { workspacesIds = []
-        , state = NoInitated
+        , state = NoInitiated
         , workspacesInfo = Dict.empty
         }
-    , test = ""
     , cards = []
+    , status = NoInitiated
     }
 
 
@@ -102,12 +103,13 @@ update msg model =
             ( { model
                 | data = data
                 , cards = List.map (\workspaceId -> ( workspaceId, Showing )) data.workspacesIds
+                , status = data.state
               }
             , Cmd.none
             )
 
         ReceivedDataFromJS (Err error) ->
-            ( { model | test = "error" }, Cmd.none )
+            ( model, Cmd.none )
 
         OpenWorkspace id ->
             ( model, Ports.openWorkspace id )
@@ -469,6 +471,7 @@ dataDecoder =
             (Decode.field "workspaces" (Decode.list Decode.int))
             (Decode.field "status" stateDecoder)
             (Decode.field "workspacesInfo" workspacesInfoDecoder)
+            -- (Decode.field "numTabs" Decode.int)
 
 
 workspacesInfoDecoder : Decoder (Dict W.WorkspaceId W.Workspace)
@@ -492,17 +495,27 @@ stringDictToIntDict stringDict =
         stringDict
 
 
-stateDecoder : Decoder State
+stateDecoder : Decoder Status
 stateDecoder =
-    Decode.oneOf [ workspaceInUseDecoder, idleDecoder ]
+    Decode.oneOf [ workspaceInUseDecoder, otherStateDecoder ]
 
 
-idleDecoder : Decoder State
-idleDecoder =
-    Decode.succeed Idle
-
-
-workspaceInUseDecoder : Decoder State
+workspaceInUseDecoder : Decoder Status
 workspaceInUseDecoder =
     Decode.map WorkspaceInUse <|
         Decode.field "workspaceInUse" Decode.int
+
+
+otherStateDecoder : Decoder Status
+otherStateDecoder =
+    Decode.field "state" Decode.string |> Decode.andThen statusFromString
+
+
+statusFromString : String -> Decoder Status
+statusFromString status =
+    case status of
+        "noData" ->
+            Decode.succeed NoData
+
+        _ ->
+            Decode.succeed Idle

@@ -236,6 +236,13 @@ function handleOnMessages(request, sender, sendResponse) {
     broadcast(model)
   }
 
+  if (type === 'open_chrome_page') {
+    chrome.tabs.create({
+      windowId: window.id,
+      url: payload // "chrome://extensions/shortcuts"
+    });
+  }
+
   const machine = model.machinesByWindowsID[window.id];
   if (!machine) return;
 

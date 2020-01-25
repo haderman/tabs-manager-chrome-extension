@@ -4,6 +4,7 @@ port module Ports exposing
     , receivedDataFromJS
     , updateWorkspace
     , createWorkspace
+    , openChromePage
     )
 
 import Json.Decode as D
@@ -24,6 +25,9 @@ port deleteWorkspace : Int -> Cmd msg
 
 
 port createWorkspace : ( String, String ) -> Cmd msg
+
+
+port openChromePage : String -> Cmd msg
 
 
 

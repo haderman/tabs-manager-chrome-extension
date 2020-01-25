@@ -141,7 +141,8 @@ img::before {
 .hover .show-in-hover { visibility: hidden; }
 .hover:hover .show-in-hover { visibility: visible; }
 .hover_background-secondary:hover { background-color: #393e46; }
-
+.hover-opacity { opacity: 0.7 ;}
+.hover-opacity:hover { opacity: 1; }
 
 /* FONTS */
 .fontWeight-200 { font-weight: 200 ;}
@@ -239,14 +240,14 @@ img::before {
 /* SIZES */
 .width-0 { width: 0px; }
 .height-0 { height: 0px ;}
-.width-xs { width: 28px; }
+.width-xs { width: 18px; }
 .width-s { width: 60px; }
 .width-m { width: 100px; }
 .width-l { width: 150px; }
 .width-xl { width: 380px ;}
 .height-none { height: 0px ;}
-.height-xs { height: 28px; }
-.height-s { height: 60px; }
+.height-xs { height: 18px; }
+.height-s { height: 28px; }
 .height-m { height: 100px; }
 .height-l { height: 150px; }
 .height-xl { height: 380px; }
@@ -297,6 +298,7 @@ img::before {
 .background-red { background-color: #e74c3c; }
 .background-gray { background-color: #607d8b; }
 .background-cyan { background-color: #00bcd4; }
+.background-white { background-color: white; }
 .color-green { color: #27ae60; }
 .color-blue { color: #03a9f4; }
 .color-orange { color: #d35400; }

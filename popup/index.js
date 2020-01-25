@@ -36,6 +36,10 @@ function onLoad() {
       const payload = { name, color }
       chrome.extension.sendMessage({ type: 'create_workspace', payload, window });
     });
+
+    app.ports.openChromePage.subscribe(function (url) {
+      chrome.extension.sendMessage({ type: 'open_chrome_page', payload: url, window });
+    });
   });
 }
 

@@ -59,6 +59,9 @@ type FocusStatus
     | WorkspaceNameInputFocused
     | RadioGroupColorsFocused
     | WorkspaceCardFocused
+    | GitHubLinkeFocused
+    | AddShortcutLinkFocused
+    | SettingsLinkFocused
 
 
 type FormCardStatus
@@ -166,6 +169,7 @@ type Msg
     | TryFocusElement (Result Dom.Error ())
     | ElementFocused FocusStatus
     | ElementBlurred
+    | OpenChromePage String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -207,6 +211,9 @@ update msg model =
 
         ElementBlurred ->
             ( { model | focusStatus = WithoutFocus }, Cmd.none )
+
+        OpenChromePage url ->
+            ( model, Ports.openChromePage url )
 
         _ ->
             ( model, Cmd.none )
@@ -406,7 +413,7 @@ tryToSaveWorkspace model =
                 payload =
                     ( model.formData.name, C.fromColorToString model.formData.color )
             in
-            ( model, Ports.createWorkspace payload )
+            ( { model | focusStatus = WithoutFocus }, Ports.createWorkspace payload )
 
         _ ->
             ( model, Cmd.none )
@@ -428,16 +435,16 @@ focusElement elementId =
 view : Model -> Html Msg
 view model =
     case model.status of
-        WorkspaceInUse id ->
+        WorkspaceInUse workspaceId ->
             let
                 idInUse id_ =
-                    not (id_ == id)
+                    not (id_ == workspaceId)
 
                 workspacesIds =
                     List.filter idInUse model.data.workspacesIds
 
                 workspaceName =
-                    case Dict.get id model.data.workspacesInfo of
+                    case Dict.get workspaceId model.data.workspacesInfo of
                         Just { name, color } ->
                             span [ Html.Attributes.class <| "color-" ++ C.fromColorToString color ]
                                 [ Html.text name ]
@@ -447,12 +454,13 @@ view model =
 
                 color_ =
                     model.data.workspacesInfo
-                        |> Dict.get id
+                        |> Dict.get workspaceId
                         |> Maybe.map .color
                         |> Maybe.withDefault C.Gray
             in
-            div []
-                [ div [ class "height-s flex alignItems-center justifyContent-space-between padding-m" ]
+            div [ id "root" ]
+                [ viewHeader
+                , div [ class "flex alignItems-center justifyContent-space-between padding-m" ]
                     [ span [ class <| "borderBottom-s borderColor-" ++ C.fromColorToString color_ ]
                         [ span [ class "color-contrast fontSize-xl" ]
                             [ workspaceName ]
@@ -475,14 +483,16 @@ view model =
             case model.formCardStatus of
                 Collapsed ->
                     div [ id "root" ]
-                        [ viewFormCollapsed
+                        [ viewHeader
+                        , viewFormCollapsed
                         , viewCards model.data.workspacesIds model.data.workspacesInfo
                         , viewFooter model
                         ]
 
                 Expanded ->
-                    div []
-                        [ viewFormExpanded model.formData model.colorList
+                    div [ id "root" ]
+                        [ viewHeader
+                        , viewFormExpanded model.formData model.colorList
                         , viewFooter model
                         ]
 
@@ -508,11 +518,72 @@ view model =
                             ]
                         ]
             in
-            div [ class "relative flex flexDirection-col justifyContent-center alignItems-stretch padding-xl alignText-center" ]
-                [ greet
-                , viewFormExpanded model.formData model.colorList
-                , viewFooter model
+            div [ id "root" ]
+                [ viewHeader
+                , div [ class "relative flex flexDirection-col justifyContent-center alignItems-stretch padding-xl alignText-center" ]
+                    [ greet
+                    , viewFormExpanded model.formData model.colorList
+                    , viewFooter model
+                    ]
                 ]
+
+
+viewHeader : Html Msg
+viewHeader =
+    let
+        gitHubLink =
+            a
+                [ target "_blank"
+                , href "https://github.com/haderman/tabs-manager-chrome-extension"
+                , tabindex 1
+                , onFocus <| ElementFocused GitHubLinkeFocused
+                , onBlur ElementBlurred
+                ]
+                [ img
+                    [ class "height-xs width-xs hover-opacity"
+                    , src "/assets/icons/github-light-32px.png"
+                    ]
+                    []
+                ]
+
+        addShorcutLink =
+            a
+                [ href "#"
+                , class "color-highlighted hover-opacity"
+                , onClick <| OpenChromePage "chrome://extensions/shortcuts"
+                , tabindex 2
+                , onFocus <| ElementFocused AddShortcutLinkFocused
+                , onBlur ElementBlurred
+                ]
+                [ text "Add shortcut" ]
+
+        separator =
+            span [ class "marginLeft-xs marginRight-xs" ]
+                [ text "|"]
+
+        settingsLink =
+            a
+                [ target "_blank"
+                , href "/newtab/newtab.html"
+                , tabindex 3
+                , onFocus <| ElementFocused SettingsLinkFocused
+                , onBlur ElementBlurred
+                ]
+                [ img
+                    [ class "height-xs width-xs hover-opacity"
+                    , src "/assets/icons/cog.svg"
+                    ]
+                    []
+                ]
+    in
+    div [ class "background-black-2 padding-s flex alignItems-center justifyContent-space-between" ]
+        [ gitHubLink
+        , span [ class "flex alignItems-center" ]
+            [ addShorcutLink
+            , separator
+            , settingsLink
+            ]
+        ]
 
 
 viewCards : List W.WorkspaceId -> Dict W.WorkspaceId W.Workspace -> Html Msg
@@ -711,6 +782,8 @@ viewFooter model =
                 , "sticky"
                 , "bottom-0"
                 , "background-transparent"
+                , "height-s"
+                , "marginTop-s"
                 ]
 
         helpContainerStyle =
@@ -752,37 +825,74 @@ viewFooter model =
                 [ text "\u{1F47E}" ]
 
         formHelp =
-            case model.formData.status of
-                Empty ->
-                    text ""
+            case model.formCardStatus of
+                Collapsed ->
+                    case model.formData.status of
+                        WithErrors ->
+                            p []
+                                [ robot
+                                , text "You must to type a name to save the current tabs"
+                                ]
 
-                Filled ->
-                    p []
-                        [ enter
-                        , text " To save the current tabs"
-                        ]
+                        _ ->
+                            text ""
 
-                WithErrors ->
-                    p []
-                        [ robot
-                        , text "You must to type a name to save the current tabs"
-                        ]
+                Expanded ->
+                    case model.formData.status of
+                        Empty ->
+                            text ""
+
+                        Filled ->
+                            p []
+                                [ enter
+                                , text " To save the current tabs"
+                                ]
+
+                        WithErrors ->
+                            p []
+                                [ robot
+                                , text "You must to type a name to save the current tabs"
+                                ]
 
         navigationHelp =
             case model.focusStatus of
+                WithoutFocus ->
+                    p []
+                        [ span [ highlighted ]
+                            [ text "Tab" ]
+                        , text " To navigate between UI elements"
+                        ]
+
                 WorkspaceNameInputFocused ->
                     case model.formCardStatus of
                         Collapsed ->
-                            case model.data.workspacesIds of
-                                [] ->
-                                    text ""
+                            case model.status of
+                                WorkspaceInUse _ ->
+                                    case model.data.workspacesIds of
+                                        [] ->
+                                            text ""
+
+                                        [_] ->
+                                            text ""
+
+                                        _ ->
+                                            p []
+                                                [ span [ highlighted ]
+                                                    [ text "Tab" ]
+                                                , text " To navigate between workspaces created"
+                                                ]
 
                                 _ ->
-                                    p []
-                                        [ span [ highlighted ]
-                                            [ text "Tab" ]
-                                        , text " To navigate between workspaces created"
-                                        ]
+                                    case model.data.workspacesIds of
+                                        [] ->
+                                            text ""
+
+                                        _ ->
+                                            p []
+                                                [ span [ highlighted ]
+                                                    [ text "Tab" ]
+                                                , text " To navigate between workspaces created"
+                                                ]
 
                         Expanded ->
                             p []
@@ -796,7 +906,7 @@ viewFooter model =
                         , text " To focus the input text and "
                         , arrowLeft
                         , arrowRight
-                        , text " To change the color"
+                        , text " To chan ge the color"
                         ]
 
                 WorkspaceCardFocused ->
@@ -808,44 +918,31 @@ viewFooter model =
                         , text " To open the workspace tabs"
                         ]
 
-                WithoutFocus ->
-                    case model.status of
-                        WorkspaceInUse _ ->
-                            case List.length model.data.workspacesIds of
-                                0 ->
-                                    text ""
+                GitHubLinkeFocused ->
+                    p []
+                        [ enter
+                        , text " To go to repository on github"
+                        ]
 
-                                1 ->
-                                    text ""
+                AddShortcutLinkFocused ->
+                    p []
+                        [ enter
+                        , text " If you want to add shortcut to open this popup whit the keyboard"
+                        ]
 
-                                _ ->
-                                    p []
-                                        [ span [ highlighted ]
-                                            [ text "Tab" ]
-                                        , text " To navigate between workspaces created"
-                                        ]
+                SettingsLinkFocused ->
+                    p []
+                        [ enter
+                        , text " To go to the advanced view"
+                        ]
 
-                        _ ->
-                            text ""
 
-        gitHubLink =
-            a
-                [ target "_blank"
-                , href "https://github.com/haderman/tabs-manager-chrome-extension"
-                ]
-                [ img
-                    [ class "height-xs width-xs"
-                    , src "/assets/icons/github-light-32px.png"
-                    ]
-                    []
-                ]
     in
     div [ class rootStyle ]
         [ div [ class helpContainerStyle ]
             [ navigationHelp
             , formHelp
             ]
-        , gitHubLink
         ]
 
 
@@ -955,5 +1052,14 @@ fromFocusStatusToElementId focusStatus =
             "radio-group-colors"
 
         WorkspaceCardFocused ->
+            ""
+
+        GitHubLinkeFocused ->
+            ""
+
+        AddShortcutLinkFocused ->
+            ""
+
+        SettingsLinkFocused ->
             ""
 

@@ -87,6 +87,7 @@ type Status
     | Idle
     | NoData
     | WorkspaceInUse W.WorkspaceId
+    | OpeningWorkspace
 
 
 type alias Data =
@@ -525,6 +526,12 @@ view model =
                     , viewFormExpanded model.formData model.colorList
                     , viewFooter model
                     ]
+                ]
+
+        OpeningWorkspace ->
+            div [ class "flex justifyContent-center alignItems-center" ]
+                [ h2 [ class "color-contrast" ]
+                    [ text "Opening workspace..." ]
                 ]
 
 

@@ -38,7 +38,7 @@ function createWindowStates() {
     initial: ifNoData ? 'noData' : 'idle',
     idle: {
       on: {
-        OPEN_WORKSPACE: 'workspaceInUse',
+        OPEN_WORKSPACE: 'openingWorkspace',
         CREATE_WORKSPACE: 'workspaceInUse',
         UPDATE_WORKSPACE: 'idle',
         DELETE_WORKSPACE: 'idle',
@@ -49,9 +49,14 @@ function createWindowStates() {
         CREATE_WORKSPACE: 'workspaceInUse',
       }
     },
+    openingWorkspace: {
+      on: {
+        WORKSPACE_OPENED: 'workspaceInUse'
+      }
+    },
     workspaceInUse: {
       on: {
-        OPEN_WORKSPACE: 'workspaceInUse',
+        OPEN_WORKSPACE: 'openingWorkspace',
         UPDATE_WORKSPACE: 'workspaceInUse',
         DELETE_WORKSPACE: 'workspaceInUse',
       }
@@ -168,22 +173,110 @@ async function checkOpenedWindows() {
 function subscribeEvents() {
   chrome.windows.onCreated.addListener(handleWindowsCreated);
   chrome.extension.onMessage.addListener(handleOnMessages);
-  chrome.tabs.onCreated.addListener(handleOnTabCreated);
-  chrome.tabs.onRemoved.addListener(handleOnTabRemoved)
+  chrome.tabs.onRemoved.addListener(handleOnTabRemoved);
+  chrome.tabs.onUpdated.addListener(handleOnTabUpdated);
 }
 
-function handleOnTabCreated(tab) {
-  api.Tabs.get(tab.windowId)
-    .then(length)
-    .then(updateCountTabsInModel(tab.windowId));
+function handleOnTabUpdated(tabId, changeInfo, tab) {
+  if (changeInfo.status !== 'complete') return;
+
+  const machine = model.machinesByWindowsID[tab.windowId];
+  if (machine.getCurrentState() === 'openingWorkspace') {
+    setModel({
+      ...model,
+      modelsByWindowsID: {
+        ...model.modelsByWindowsID,
+        [tab.windowId]: {
+          ...model.modelsByWindowsID[tab.windowId],
+          numTabsOpening: model.modelsByWindowsID[tab.windowId].numTabsOpening - 1
+        }
+      }
+    });
+
+    const isWorkspaceOpened = (
+      model.modelsByWindowsID[tab.windowId].numTabsClosing === 0
+      && model.modelsByWindowsID[tab.windowId].numTabsOpening === 0
+    );
+
+    if (isWorkspaceOpened) {
+      api.Tabs.get(tab.windowId).then(tabs => {
+        machine.send('WORKSPACE_OPENED');
+        setModel({
+          ...model,
+          modelsByWindowsID: {
+            ...model.modelsByWindowsID,
+            [tab.windowId]: {
+              state: machine.getCurrentState(),
+              workspaceInUse: model.modelsByWindowsID[tab.windowId].workspaceInUse,
+              numTabs: length(tabs)
+            }
+          }
+        });
+      });
+    }
+  } else if (machine.getCurrentState() === 'workspaceInUse') {
+    handleTabChanges(tab.windowId);
+  }
 }
 
 function handleOnTabRemoved(tabId, { windowId, isWindowClosing }) {
   if (isWindowClosing) return;
 
-  api.Tabs.get(windowId)
-    .then(length)
-    .then(updateCountTabsInModel(windowId));
+  const machine = model.machinesByWindowsID[windowId];
+  if (machine.getCurrentState() === 'openingWorkspace') {
+    setModel({
+      ...model,
+      modelsByWindowsID: {
+        ...model.modelsByWindowsID,
+        [windowId]: {
+          ...model.modelsByWindowsID[windowId],
+          numTabsClosing: model.modelsByWindowsID[windowId].numTabsClosing - 1
+        }
+      }
+    });
+
+    const isWorkspaceOpened = (
+      model.modelsByWindowsID[windowId].numTabsClosing === 0
+      && model.modelsByWindowsID[windowId].numTabsOpening === 0
+    );
+
+    if (isWorkspaceOpened) {
+      api.Tabs.get(windowId).then(tabs => {
+        machine.send('WORKSPACE_OPENED');
+        setModel({
+          ...model,
+          modelsByWindowsID: {
+            ...model.modelsByWindowsID,
+            [windowId]: {
+              state: machine.getCurrentState(),
+              workspaceInUse: model.modelsByWindowsID[windowId].workspaceInUse,
+              numTabs: length(tabs)
+            }
+          }
+        });
+      });
+    }
+  } else if (machine.getCurrentState() === 'workspaceInUse') {
+    handleTabChanges(windowId);
+  }
+}
+
+function handleTabChanges(windowId) {
+  api.Tabs.get(windowId).then(tabs => {
+    updateCountTabsInModel(windowId)(length(tabs));
+
+    const machine = model.machinesByWindowsID[windowId];
+    const windowModel = model.modelsByWindowsID[windowId];
+    const workspace = model.data[windowModel.workspaceInUse];
+
+    api.Workspaces.update(workspace, tabs).then(function updateDataAfterOnTabCreated([id, dataSaved]) {
+      machine.send('UPDATE_WORKSPACE');
+      setModel({
+        ...model,
+        data: { ...model.data, ...dataSaved },
+      });
+    });
+  });
 }
 
 function updateCountTabsInModel(windowId) {
@@ -247,23 +340,19 @@ function handleOnMessages(request, sender, sendResponse) {
   if (!machine) return;
 
   if (type === 'use_workspace' && machine.isEventAvailable('OPEN_WORKSPACE')) {
-    openWorkspace(payload, window).then(([id, prevWorkspaceData]) => {
-      machine.send('OPEN_WORKSPACE');
-      setModel({
-        ...model,
-        data: {
-          ...model.data,
-          ...prevWorkspaceData
-        },
-        modelsByWindowsID: {
-          ...model.modelsByWindowsID,
-          [window.id]: {
-            state: machine.getCurrentState(),
-            workspaceInUse: id,
-          }
+    machine.send('OPEN_WORKSPACE');
+    setModel({
+      ...model,
+      modelsByWindowsID: {
+        ...model.modelsByWindowsID,
+        [window.id]: {
+          state: machine.getCurrentState(),
+          workspaceInUse: payload,
         }
-      });
+      }
     });
+
+    openWorkspace(payload, window).then(() => {});
   }
 
   if (type === 'create_workspace' && machine.isEventAvailable('CREATE_WORKSPACE')) {
@@ -358,12 +447,26 @@ async function openWorkspace(workspaceId, window) {
       console.warn('Error getting workspace data from storage: ', err);
     });
 
-  await api.Tabs.create(tabsToOpen);
-  await api.Tabs.remove(currentlyOpenTabs.map(prop('id')));
+  setModel({
+    ...model,
+    modelsByWindowsID: {
+      ...model.modelsByWindowsID,
+      [window.id]: {
+        ...model.modelsByWindowsID[window.id],
+        numTabsOpening: length(tabsToOpen),
+        numTabsClosing: length(currentlyOpenTabs)
+      }
+    }
+  });
 
-  const [id, data] = await api.Workspaces.save(workspaceToSave(model), currentlyOpenTabs);
+  await Promise.all([
+    api.Tabs.remove(currentlyOpenTabs.map(prop('id'))),
+    api.Tabs.create(tabsToOpen)
+  ]);
 
-  return [workspaceId, data];
+  // const [id, data] = await api.Workspaces.save(workspaceToSave(model), currentlyOpenTabs);
+
+  return // [workspaceId, data];
 }
 
 

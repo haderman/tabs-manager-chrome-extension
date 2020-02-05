@@ -87,7 +87,7 @@ type Status
     | Idle
     | NoData
     | WorkspaceInUse W.WorkspaceId
-    | OpeningWorkspace
+    | OpeningWorkspace W.WorkspaceId
 
 
 type alias Data =
@@ -436,6 +436,44 @@ focusElement elementId =
 view : Model -> Html Msg
 view model =
     case model.status of
+        OpeningWorkspace workspaceId ->
+            let
+                idInUse id_ =
+                    not (id_ == workspaceId)
+
+                workspacesIds =
+                    List.filter idInUse model.data.workspacesIds
+
+                workspaceName =
+                    case Dict.get workspaceId model.data.workspacesInfo of
+                        Just { name, color } ->
+                            span [ Html.Attributes.class <| "color-" ++ C.fromColorToString color ]
+                                [ Html.text name ]
+
+                        Nothing ->
+                            Html.text ""
+
+                color_ =
+                    model.data.workspacesInfo
+                        |> Dict.get workspaceId
+                        |> Maybe.map .color
+                        |> Maybe.withDefault C.Gray
+            in
+            div [ id "root" ]
+                [ viewHeader
+                , div [ class "flex alignItems-center justifyContent-space-between padding-m" ]
+                    [ span [ class <| "borderBottom-s borderColor-" ++ C.fromColorToString color_ ]
+                        [ span [ class "color-contrast fontSize-xl" ]
+                            [ workspaceName ]
+                        , text " "
+                        , span [ class "color-contrast" ]
+                            [ text "Openning tabs..." ]
+                        ]
+                    ]
+                , viewCards workspacesIds model.data.workspacesInfo
+                , viewFooter model
+                ]
+
         WorkspaceInUse workspaceId ->
             let
                 idInUse id_ =
@@ -526,12 +564,6 @@ view model =
                     , viewFormExpanded model.formData model.colorList
                     , viewFooter model
                     ]
-                ]
-
-        OpeningWorkspace ->
-            div [ class "flex justifyContent-center alignItems-center" ]
-                [ h2 [ class "color-contrast" ]
-                    [ text "Opening workspace..." ]
                 ]
 
 
@@ -964,7 +996,21 @@ dataDecoder =
             (Decode.field "workspaces" (Decode.list Decode.int))
             (Decode.field "status" stateDecoder)
             (Decode.field "workspacesInfo" workspacesInfoDecoder)
-            (Decode.field "numTabs" Decode.int)
+            (Decode.field "numTabs" decodeNumTabs)
+
+
+decodeNumTabs : Decoder Int
+decodeNumTabs =
+    Decode.maybe Decode.int
+        |> Decode.andThen
+            (\maybeNumTabs ->
+                case maybeNumTabs of
+                    Just numTabs ->
+                        Decode.succeed numTabs
+
+                    Nothing ->
+                        Decode.succeed 0
+            )
 
 
 workspacesInfoDecoder : Decoder (Dict W.WorkspaceId W.Workspace)
@@ -990,18 +1036,24 @@ stringDictToIntDict stringDict =
 
 stateDecoder : Decoder Status
 stateDecoder =
-    Decode.oneOf [ workspaceInUseDecoder, otherStateDecoder ]
+    Decode.field "state" Decode.string
+        |> Decode.andThen
+            (\state ->
+                case state of
+                    "workspaceInUse" ->
+                        Decode.map WorkspaceInUse <|
+                            Decode.field "workspaceInUse" Decode.int
 
+                    "openingWorkspace" ->
+                        Decode.map OpeningWorkspace <|
+                            Decode.field "workspaceInUse" Decode.int
 
-workspaceInUseDecoder : Decoder Status
-workspaceInUseDecoder =
-    Decode.map WorkspaceInUse <|
-        Decode.field "workspaceInUse" Decode.int
+                    "noData" ->
+                        Decode.succeed NoData
 
-
-otherStateDecoder : Decoder Status
-otherStateDecoder =
-    Decode.field "state" Decode.string |> Decode.andThen statusFromString
+                    _ ->
+                        Decode.succeed Idle
+            )
 
 
 statusFromString : String -> Decoder Status

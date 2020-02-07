@@ -62,6 +62,7 @@ type FocusStatus
     | GitHubLinkeFocused
     | AddShortcutLinkFocused
     | SettingsLinkFocused
+    | DisconnectWorkspaceButtonFocused
 
 
 type FormCardStatus
@@ -164,13 +165,12 @@ type Msg
     | ReceivedDataFromJS (Result Decode.Error Data)
     | OpenWorkspace W.WorkspaceId
     | UpdateForm FormMsg
-    | ButtonCreatePressed
-    | ButtonSavePressed
     | KeyPressed Key
     | TryFocusElement (Result Dom.Error ())
     | ElementFocused FocusStatus
     | ElementBlurred
     | OpenChromePage String
+    | DisconnectWorkspace
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -201,9 +201,6 @@ update msg model =
         UpdateForm formMsg ->
             updateForm formMsg model
 
-        ButtonSavePressed ->
-            tryToSaveWorkspace model
-
         KeyPressed key ->
             handleKeyPressed key model
 
@@ -216,8 +213,11 @@ update msg model =
         OpenChromePage url ->
             ( model, Ports.openChromePage url )
 
-        _ ->
+        TryFocusElement _ ->
             ( model, Cmd.none )
+
+        DisconnectWorkspace ->
+            ( model, Ports.disconnectWorkspace () )
 
 
 updateForm : FormMsg -> Model -> ( Model, Cmd Msg )
@@ -499,7 +499,7 @@ view model =
             in
             div [ id "root" ]
                 [ viewHeader
-                , div [ class "flex alignItems-center justifyContent-space-between padding-m" ]
+                , div [ class "flex alignItems-center padding-m" ]
                     [ span [ class <| "borderBottom-s borderColor-" ++ C.fromColorToString color_ ]
                         [ span [ class "color-contrast fontSize-xl" ]
                             [ workspaceName ]
@@ -507,6 +507,13 @@ view model =
                         , span [ class "color-contrast" ]
                             [ text <| String.fromInt model.data.numTabsInUse ++ " Tabs" ]
                         ]
+                    , button
+                        [ class "padding-xs marginLeft-l rounded background-white hover-opacity color-black fontWeight-400"
+                        , onClick DisconnectWorkspace
+                        , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
+                        , onBlur ElementBlurred
+                        ]
+                        [ text "Disconnect" ]
                     ]
                 , viewCards workspacesIds model.data.workspacesInfo
                 , viewFooter model
@@ -975,6 +982,12 @@ viewFooter model =
                         , text " To go to the advanced view"
                         ]
 
+                DisconnectWorkspaceButtonFocused ->
+                    p []
+                        [ enter
+                        , text " To disconnect of the current workspace"
+                        ]
+
 
     in
     div [ class rootStyle ]
@@ -1120,5 +1133,8 @@ fromFocusStatusToElementId focusStatus =
             ""
 
         SettingsLinkFocused ->
+            ""
+
+        DisconnectWorkspaceButtonFocused ->
             ""
 

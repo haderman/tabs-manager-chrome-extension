@@ -146,6 +146,7 @@ img::before {
 
 /* FONTS */
 .fontWeight-200 { font-weight: 200 ;}
+.fontWeight-400 { font-weight: 400 ;}
 .fontSize-xs { font-size: 12px; }
 .fontSize-s { font-size: 16px; }
 .fontSize-m { font-size: 18px; }

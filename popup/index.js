@@ -28,17 +28,21 @@ function onLoad() {
       }
     );
 
-    app.ports.openWorkspace.subscribe(function (workspaceId) {
+    app.ports.openWorkspace.subscribe(workspaceId => {
       chrome.extension.sendMessage({ type: 'use_workspace', payload: workspaceId, window });
     });
 
-    app.ports.createWorkspace.subscribe(function ([name, color]) {
+    app.ports.createWorkspace.subscribe(([name, color]) => {
       const payload = { name, color }
       chrome.extension.sendMessage({ type: 'create_workspace', payload, window });
     });
 
-    app.ports.openChromePage.subscribe(function (url) {
+    app.ports.openChromePage.subscribe(url => {
       chrome.extension.sendMessage({ type: 'open_chrome_page', payload: url, window });
+    });
+
+    app.ports.disconnectWorkspace.subscribe(() => {
+      chrome.extension.sendMessage({ type: 'disconnect_workspace', window });
     });
   });
 }

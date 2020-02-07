@@ -59,6 +59,7 @@ function createWindowStates() {
         OPEN_WORKSPACE: 'openingWorkspace',
         UPDATE_WORKSPACE: 'workspaceInUse',
         DELETE_WORKSPACE: 'workspaceInUse',
+        DISCONNECT_WORKSPACE: 'idle'
       }
     }
   }
@@ -412,6 +413,20 @@ function handleOnMessages(request, sender, sendResponse) {
       });
     });
   }
+
+  if (type === 'disconnect_workspace' && machine.isEventAvailable('DISCONNECT_WORKSPACE')) {
+    machine.send('DISCONNECT_WORKSPACE');
+    setModel({
+      ...model,
+      modelsByWindowsID: {
+        ...model.modelsByWindowsID,
+        [window.id]: {
+          state: machine.getCurrentState(),
+          numTabs: model.modelsByWindowsID[window.id].numTabs
+        }
+      }
+    })
+  }
 }
 
 function broadcast(model) {
@@ -459,10 +474,8 @@ async function openWorkspace(workspaceId, window) {
     }
   });
 
-  await Promise.all([
-    api.Tabs.remove(currentlyOpenTabs.map(prop('id'))),
-    api.Tabs.create(tabsToOpen)
-  ]);
+  await api.Tabs.create(tabsToOpen);
+  await api.Tabs.remove(currentlyOpenTabs.map(prop('id')));
 
   // const [id, data] = await api.Workspaces.save(workspaceToSave(model), currentlyOpenTabs);
 

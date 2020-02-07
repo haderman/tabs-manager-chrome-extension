@@ -5,6 +5,7 @@ port module Ports exposing
     , updateWorkspace
     , createWorkspace
     , openChromePage
+    , disconnectWorkspace
     )
 
 import Json.Decode as D
@@ -29,6 +30,8 @@ port createWorkspace : ( String, String ) -> Cmd msg
 
 port openChromePage : String -> Cmd msg
 
+
+port disconnectWorkspace : () -> Cmd msg
 
 
 -- Input

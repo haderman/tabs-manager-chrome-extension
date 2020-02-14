@@ -1,6 +1,7 @@
 module NewTab exposing (..)
 
 import Browser
+import Browser.Dom as Dom
 import Color as C
 import Dict exposing (Dict)
 import Html exposing (..)
@@ -10,6 +11,7 @@ import Json.Decode as Decode exposing (..)
 import Ports
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
+import Task
 import Workspace as W
 
 
@@ -41,12 +43,15 @@ type Status
     | Idle
     | NoData
     | WorkspaceInUse W.WorkspaceId
+    | OpeningWorkspace W.WorkspaceId
+    | DeletingWorkspace W.WorkspaceId
 
 
 type alias Data =
     { workspacesIds : List W.WorkspaceId
     , state : Status
     , workspacesInfo : Dict W.WorkspaceId W.Workspace
+    , numTabsInUse : Int
     }
 
 
@@ -67,6 +72,7 @@ initModel =
         { workspacesIds = []
         , state = NoInitiated
         , workspacesInfo = Dict.empty
+        , numTabsInUse = 0
         }
     , cards = []
     , status = NoInitiated
@@ -90,7 +96,10 @@ type Msg
     | PressedSaveButton W.Workspace
     | PressedEditButton W.WorkspaceId
     | PressedDeleteButton W.WorkspaceId
+    | PressedDeleteConfirmationButton W.WorkspaceId
+    | PressedCancelDeletionButton
     | ChangeField W.WorkspaceId (String -> W.Workspace -> W.Workspace) String
+    | TryFocusElement (Result Dom.Error ())
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -140,7 +149,13 @@ update msg model =
                     ( model, Cmd.none )
 
         PressedDeleteButton workspaceId ->
+            ( { model | status = DeletingWorkspace workspaceId }, Cmd.none )
+
+        PressedDeleteConfirmationButton workspaceId ->
             ( model, Ports.deleteWorkspace workspaceId )
+
+        PressedCancelDeletionButton ->
+            ( { model | status = model.data.state }, Cmd.none )
 
         ChangeField workspaceId setter value ->
             ( { model
@@ -162,6 +177,9 @@ update msg model =
               }
             , Cmd.none
             )
+
+        TryFocusElement _ ->
+            ( model, Cmd.none )
 
 
 resetCardsToShowingStatus : List ( W.WorkspaceId, CardStatus ) -> List ( W.WorkspaceId, CardStatus )
@@ -202,15 +220,96 @@ setColor color workspace =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ viewHeader model
-        , viewCards model.cards model.data
+    case model.status of
+        DeletingWorkspace workspaceId ->
+            div [ Html.Attributes.class "relative" ]
+                [ viewHeader model
+                , viewCards model.cards model.data
+                , case Dict.get workspaceId model.data.workspacesInfo of
+                    Just workspace ->
+                        viewDeletingWorkspace workspace
+
+                    Nothing ->
+                        Html.text ""
+                ]
+
+        _ ->
+            div []
+                [ viewHeader model
+                , viewCards model.cards model.data
+                ]
+
+
+viewDeletingWorkspace : W.Workspace -> Html Msg
+viewDeletingWorkspace {id, name, color} =
+    let
+        rootContainerStyle =
+            String.join " "
+                [ "flex"
+                , "justifyContent-center"
+                , "alignItems-center"
+                , "flexDirection-col"
+                , "full-height"
+                , "full-width"
+                , "top-0"
+                , "left-0"
+                , "zIndex-4"
+                , "background-transparent"
+                , "backdrop-filter-blur"
+                , "fixed"
+                ]
+
+        workspaceName =
+            span [ Html.Attributes.class <| "color-" ++ C.fromColorToString color ]
+                [ Html.text name ]
+
+        buttonStyle =
+            [ "padding-m hover margin-l rounded fontSize-s" ]
+
+        cancelButtonStyle =
+            String.join " " <| buttonStyle ++ [ "background-alternate" ]
+
+        deleteButtonStyle =
+            String.join " " <| buttonStyle ++ [ "background-warning" ]
+    in
+    div [ Html.Attributes.class rootContainerStyle ]
+        [ h2 [ Html.Attributes.class "color-contrast" ]
+            [ Html.text "You are deleting "
+            , workspaceName
+            ]
+        , div [ Html.Attributes.class "marginTop-xl" ]
+            [ button
+                [ onClick PressedCancelDeletionButton
+                , Html.Attributes.class cancelButtonStyle
+                ]
+                [ Html.text "Cancel" ]
+            , button
+                [ onClick <| PressedDeleteConfirmationButton id
+                , Html.Attributes.class deleteButtonStyle
+                ]
+                [ Html.text "Delete" ]
+            ]
         ]
 
 
 viewHeader : Model -> Html Msg
 viewHeader model =
     let
+        style =
+            String.join " "
+                [ "full-width"
+                , "height-m"
+                , "background-transparent"
+                , "sticky"
+                , "backdrop-filter-blur"
+                , "boxShadow-black"
+                , "zIndex-4"
+                , "marginBottom-xl"
+                , "flex"
+                , "alignItems-center"
+                , "justifyContent-center"
+                ]
+
         viewName id =
             case Dict.get id model.data.workspacesInfo of
                 Just { name, color } ->
@@ -220,7 +319,7 @@ viewHeader model =
                 Nothing ->
                     Html.text ""
     in
-    div [ Html.Attributes.class "full-width height-s background-transparent sticky backdrop-filter-blur boxShadow-black zIndex-4 marginBottom-xl flex alignItems-center justifyContent-center" ]
+    div [ Html.Attributes.class style ]
         [ case model.data.state of
             WorkspaceInUse id ->
                 viewName id
@@ -300,7 +399,18 @@ viewShowingCard { id, name, color, tabs } =
                         [ Html.text name ]
 
                 buttonStyle =
-                    Html.Attributes.class "width-xs height-xs background-secondary circle marginLeft-l marginBottom-xs color-contrast show-in-hover"
+                    Html.Attributes.class <|
+                        String.join " "
+                            [ "width-s"
+                            , "height-s"
+                            , "background-secondary"
+                            , "circle marginLeft-l"
+                            , "marginBottom-xs"
+                            , "color-contrast show-in-hover"
+                            , "inline-flex"
+                            , "justifyContent-center"
+                            , "alignItems-center"
+                            ]
 
                 actions =
                     div []
@@ -308,7 +418,12 @@ viewShowingCard { id, name, color, tabs } =
                             [ buttonStyle
                             , customOnClick <| PressedEditButton id
                             ]
-                            [ Html.text "E" ]
+                            [ img
+                                [ Html.Attributes.class "height-xs width-xs hover-opacity"
+                                , src "/assets/icons/pencil.svg"
+                                ]
+                                []
+                            ]
                         ]
             in
             div [ Html.Attributes.class "padding-m flex alignItems-center justifyContent-space-between background-black" ]
@@ -347,7 +462,18 @@ viewEditingCard workspace =
                         []
 
                 buttonStyle =
-                    Html.Attributes.class "width-xs height-xs background-secondary circle marginLeft-l marginBottom-xs color-contrast show-in-hover"
+                    Html.Attributes.class <|
+                        String.join " "
+                            [ "width-s"
+                            , "height-s"
+                            , "background-secondary"
+                            , "circle marginLeft-l"
+                            , "marginBottom-xs"
+                            , "color-contrast show-in-hover"
+                            , "inline-flex"
+                            , "justifyContent-center"
+                            , "alignItems-center"
+                            ]
             in
             div [ Html.Attributes.class "padding-m flex flexDirection-col background-black" ]
                 [ div [ Html.Attributes.class "flex alignItems-center justifyContent-space-between" ]
@@ -357,17 +483,32 @@ viewEditingCard workspace =
                             [ buttonStyle
                             , customOnClick <| PressedDeleteButton workspace.id
                             ]
-                            [ Html.text "D" ]
+                            [ img
+                                [ Html.Attributes.class "height-xs width-xs hover-opacity"
+                                , src "/assets/icons/trash.svg"
+                                ]
+                                []
+                            ]
                         , button
                             [ buttonStyle
                             , customOnClick <| PressedSaveButton workspace
                             ]
-                            [ Html.text "S" ]
+                            [ img
+                                [ Html.Attributes.class "height-xs width-xs hover-opacity"
+                                , src "/assets/icons/save.svg"
+                                ]
+                                []
+                            ]
                         , button
                             [ buttonStyle
                             , customOnClick <| PressedCancelButton workspace.id
                             ]
-                            [ Html.text "X" ]
+                            [ img
+                                [ Html.Attributes.class "height-xs width-xs hover-opacity"
+                                , src "/assets/icons/close.svg"
+                                ]
+                                []
+                            ]
                         ]
                     ]
                 , viewRadioGroupColors workspace.id workspace.color
@@ -445,6 +586,15 @@ subscriptions model =
 
 
 
+-- TASKS
+
+
+focusElement : String -> Cmd Msg
+focusElement elementId =
+    Task.attempt TryFocusElement (Dom.focus elementId)
+
+
+
 -- HELPERS
 
 
@@ -467,11 +617,11 @@ customOnClick msg =
 dataDecoder : Decoder Data
 dataDecoder =
     Decode.field "data" <|
-        Decode.map3 Data
+        Decode.map4 Data
             (Decode.field "workspaces" (Decode.list Decode.int))
             (Decode.field "status" stateDecoder)
             (Decode.field "workspacesInfo" workspacesInfoDecoder)
-            -- (Decode.field "numTabs" Decode.int)
+            (Decode.field "numTabs" Decode.int)
 
 
 workspacesInfoDecoder : Decoder (Dict W.WorkspaceId W.Workspace)
@@ -497,18 +647,24 @@ stringDictToIntDict stringDict =
 
 stateDecoder : Decoder Status
 stateDecoder =
-    Decode.oneOf [ workspaceInUseDecoder, otherStateDecoder ]
+    Decode.field "state" Decode.string
+        |> Decode.andThen
+            (\state ->
+                case state of
+                    "workspaceInUse" ->
+                        Decode.map WorkspaceInUse <|
+                            Decode.field "workspaceInUse" Decode.int
 
+                    "openingWorkspace" ->
+                        Decode.map OpeningWorkspace <|
+                            Decode.field "workspaceInUse" Decode.int
 
-workspaceInUseDecoder : Decoder Status
-workspaceInUseDecoder =
-    Decode.map WorkspaceInUse <|
-        Decode.field "workspaceInUse" Decode.int
+                    "noData" ->
+                        Decode.succeed NoData
 
-
-otherStateDecoder : Decoder Status
-otherStateDecoder =
-    Decode.field "state" Decode.string |> Decode.andThen statusFromString
+                    _ ->
+                        Decode.succeed Idle
+            )
 
 
 statusFromString : String -> Decoder Status

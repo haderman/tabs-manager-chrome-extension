@@ -267,10 +267,10 @@ viewDeletingWorkspace {id, name, color} =
             [ "padding-m hover margin-l rounded fontSize-s" ]
 
         cancelButtonStyle =
-            String.join " " <| buttonStyle ++ [ "background-alternate" ]
+            String.join " " <| buttonStyle ++ [ "background-contrast" ]
 
         deleteButtonStyle =
-            String.join " " <| buttonStyle ++ [ "background-warning" ]
+            String.join " " <| buttonStyle ++ [ "background-red" ]
     in
     div [ Html.Attributes.class rootContainerStyle ]
         [ h2 [ Html.Attributes.class "color-contrast" ]

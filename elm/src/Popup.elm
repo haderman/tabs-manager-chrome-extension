@@ -452,23 +452,14 @@ view model =
 
                         Nothing ->
                             Html.text ""
-
-                color_ =
-                    model.data.workspacesInfo
-                        |> Dict.get workspaceId
-                        |> Maybe.map .color
-                        |> Maybe.withDefault C.Gray
             in
             div [ id "root" ]
                 [ viewHeader
-                , div [ class "flex alignItems-center justifyContent-space-between padding-m" ]
-                    [ span [ class <| "borderBottom-s borderColor-" ++ C.fromColorToString color_ ]
-                        [ span [ class "color-contrast fontSize-xl" ]
-                            [ workspaceName ]
-                        , text " "
-                        , span [ class "color-contrast" ]
-                            [ text "Openning tabs..." ]
-                        ]
+                , div [ class "flex flexDirection-col alignItems-center height-m justifyContent-space-between padding-m background-black" ]
+                    [ div [ class "color-contrast fontSize-xl marginBottom-m" ]
+                        [ workspaceName ]
+                    , div [ class "color-contrast marginBottom-m" ]
+                        [ text "Openning tabs..." ]
                     ]
                 , viewCards workspacesIds model.data.workspacesInfo
                 , viewFooter model
@@ -490,30 +481,23 @@ view model =
 
                         Nothing ->
                             Html.text ""
-
-                color_ =
-                    model.data.workspacesInfo
-                        |> Dict.get workspaceId
-                        |> Maybe.map .color
-                        |> Maybe.withDefault C.Gray
             in
             div [ id "root" ]
                 [ viewHeader
-                , div [ class "flex alignItems-center padding-m" ]
-                    [ span [ class <| "borderBottom-s borderColor-" ++ C.fromColorToString color_ ]
-                        [ span [ class "color-contrast fontSize-xl" ]
-                            [ workspaceName ]
-                        , text " "
-                        , span [ class "color-contrast" ]
+                , div [ class "flex height-m flexDirection-col justifyContent-space-between alignItems-center padding-m background-black" ]
+                    [ div [ class "color-contrast fontSize-xl marginBottom-m" ]
+                        [ workspaceName ]
+                    , div [ class "marginBottom-m" ]
+                        [ span [ class "color-contrast" ]
                             [ text <| String.fromInt model.data.numTabsInUse ++ " Tabs" ]
-                        ]
-                    , button
-                        [ class "padding-xs marginLeft-l rounded background-white hover-opacity color-black fontWeight-400"
-                        , onClick DisconnectWorkspace
-                        , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
-                        , onBlur ElementBlurred
-                        ]
-                        [ text "Disconnect" ]
+                        , button
+                            [ class "padding-xs marginLeft-l rounded background-white hover-opacity color-black fontWeight-400"
+                            , onClick DisconnectWorkspace
+                            , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
+                            , onBlur ElementBlurred
+                            ]
+                            [ text "Disconnect" ]
+                            ]
                     ]
                 , viewCards workspacesIds model.data.workspacesInfo
                 , viewFooter model
@@ -528,17 +512,40 @@ view model =
         Idle ->
             case model.formCardStatus of
                 Collapsed ->
+                    let
+                        backdrop =
+                            div [ class "absolute top-0 left-0 full-width full-height background-black opacity-0" ]
+                                []
+                    in
                     div [ id "root" ]
-                        [ viewHeader
-                        , viewFormCollapsed
-                        , viewCards model.data.workspacesIds model.data.workspacesInfo
+                        [ div [ class "relative" ]
+                            [ viewHeader
+                            , backdrop
+                            ]
+                        , viewFormCollapsed model
+                        , div [ class "relative flex justifyContent-center" ]
+                            [ viewCards model.data.workspacesIds model.data.workspacesInfo
+                            , backdrop
+                            ]
                         , viewFooter model
                         ]
 
                 Expanded ->
+                    let
+                        backdrop =
+                            div [ class "absolute top-0 left-0 full-width full-height backdrop-filter-blur background-black opacity-70" ]
+                                []
+                    in
                     div [ id "root" ]
-                        [ viewHeader
+                        [ div [ class "relative" ]
+                            [ viewHeader
+                            , backdrop
+                            ]
                         , viewFormExpanded model.formData model.colorList
+                        , div [ class "relative flex justifyContent-center" ]
+                            [ viewCards model.data.workspacesIds model.data.workspacesInfo
+                            , backdrop
+                            ]
                         , viewFooter model
                         ]
 
@@ -548,7 +555,7 @@ view model =
                     "\u{1F44B}"
 
                 greet =
-                    div [ class "color-contrast fontSize-m textAlign-center" ]
+                    div [ class "color-contrast fontSize-m textAlign-center marginBottom-xl" ]
                         [ p []
                             [ text <| wavingHand ++ " You are using "
                             , span [ class "color-alternate" ]
@@ -566,7 +573,7 @@ view model =
             in
             div [ id "root" ]
                 [ viewHeader
-                , div [ class "relative flex flexDirection-col justifyContent-center alignItems-stretch padding-xl alignText-center" ]
+                , div [ class "relative flex flexDirection-col justifyContent-center alignItems-stretch alignText-center" ]
                     [ greet
                     , viewFormExpanded model.formData model.colorList
                     , viewFooter model
@@ -584,9 +591,10 @@ viewHeader =
                 , tabindex 1
                 , onFocus <| ElementFocused GitHubLinkeFocused
                 , onBlur ElementBlurred
+                , class "hover-opacity"
                 ]
                 [ img
-                    [ class "height-xs width-xs hover-opacity"
+                    [ class "height-xs width-xs"
                     , src "/assets/icons/github-light-32px.png"
                     ]
                     []
@@ -614,6 +622,7 @@ viewHeader =
                 , tabindex 3
                 , onFocus <| ElementFocused SettingsLinkFocused
                 , onBlur ElementBlurred
+                , class "hover-opacity"
                 ]
                 [ img
                     [ class "height-xs width-xs hover-opacity"
@@ -622,7 +631,7 @@ viewHeader =
                     []
                 ]
     in
-    div [ class "background-black-2 padding-s flex alignItems-center justifyContent-space-between" ]
+    div [ class "background-primary padding-s flex alignItems-center justifyContent-space-between" ]
         [ gitHubLink
         , span [ class "flex alignItems-center" ]
             [ addShorcutLink
@@ -655,7 +664,7 @@ viewCards workspacesIds workspacesInfo =
                 ]
 
         _ ->
-            div [ class "grid gridTemplateCol-3 gridGap-xs padding-m" ]
+            div [ class "grid gridTemplateCol-3 gridGap-xs padding-m paddingTop-xl" ]
                 (workspacesIds
                     |> List.map getWorkspace
                     |> List.map viewCardOrEmptyText
@@ -663,10 +672,10 @@ viewCards workspacesIds workspacesInfo =
 
 
 viewCard : W.Workspace -> Html Msg
-viewCard workspace =
+viewCard { id, name, color, tabs } =
     let
-        title name color =
-            div [ class <| "fontSize-l ellipsis overflow-hidden whiteSpace-nowrap textAlign-left color-" ++ C.fromColorToString color ]
+        title =
+            div [ class <| "fontSize-l ellipsis overflow-hidden whiteSpace-nowrap textAlign-left color-contrast _color-" ++ C.fromColorToString color ]
                 [ text name ]
 
         tabsCount num =
@@ -674,15 +683,15 @@ viewCard workspace =
                 [ text <| String.fromInt num ++ " Tabs" ]
     in
     button
-        [ class "background-black padding-m rounded"
+        [ class <| "rounded padding-xs paddingLeft-m paddingRight-m gradient-" ++ C.fromColorToString color
         , autofocus False
         , tabindex 0
-        , onClick <| OpenWorkspace workspace.id
+        , onClick <| OpenWorkspace id
         , onFocus <| ElementFocused WorkspaceCardFocused
         , onBlur ElementBlurred
         ]
-        [ title workspace.name workspace.color
-        , tabsCount <| List.length workspace.tabs
+        [ title
+        , tabsCount <| List.length tabs
         ]
 
 
@@ -690,8 +699,8 @@ viewCard workspace =
 -- FORM
 
 
-viewFormCollapsed : Html Msg
-viewFormCollapsed =
+viewFormCollapsed : Model -> Html Msg
+viewFormCollapsed model =
     div [ class formContainerStyle ]
         [ input
             [ class <| inputStyle ++ " marginBottom-l"
@@ -708,6 +717,14 @@ viewFormCollapsed =
                 )
             ]
             []
+        , p [ class "color-contrast marginBottom-m letterSpacing-05" ]
+            [ text "You have "
+            , span [ class "color-highlighted" ]
+                [ text <| String.fromInt model.data.numTabsInUse
+                , text " tabs"
+                ]
+            , text " opened. Type a name to save it."
+            ]
         ]
 
 
@@ -740,10 +757,12 @@ formContainerStyle =
     String.join " "
         [ "flex"
         , "flexDirection-col"
-        , "justifyContent-center"
+        , "justifyContent-space-between"
         , "alignItems-center"
         , "ackdrop-filter-blur"
-        , "padding-xl"
+        , "padding-l"
+        , "background-black"
+        , "height-m"
         ]
 
 
@@ -791,7 +810,7 @@ viewRadioGroupColors color colorList =
                 ]
     in
     div
-        [ class "flex opacity-70 padding-m"
+        [ class "flex opacity-70 padding-m height-xs"
         , id <| fromFocusStatusToElementId RadioGroupColorsFocused
         , tabindex 1
         , onBlur ElementBlurred
@@ -828,6 +847,7 @@ viewFooter model =
                 , "sticky"
                 , "bottom-0"
                 , "background-transparent"
+                , "gradient-blackToTransparent"
                 , "height-s"
                 , "marginTop-s"
                 ]
@@ -841,6 +861,8 @@ viewFooter model =
                 , "flexDirection-colReverse"
                 , "color-contrast"
                 , "full-height"
+                , "rounded"
+                , "letterSpacing-05"
                 ]
 
         highlighted =

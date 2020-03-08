@@ -51,7 +51,8 @@ function createWindowStates() {
     },
     openingWorkspace: {
       on: {
-        WORKSPACE_OPENED: 'workspaceInUse'
+        WORKSPACE_OPENED: 'workspaceInUse',
+        DISCONNECT_WORKSPACE: 'idle'
       }
     },
     workspaceInUse: {

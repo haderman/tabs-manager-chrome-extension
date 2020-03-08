@@ -459,7 +459,15 @@ view model =
                     [ div [ class "color-contrast fontSize-xl marginBottom-m" ]
                         [ workspaceName ]
                     , div [ class "color-contrast marginBottom-m" ]
-                        [ text "Openning tabs..." ]
+                        [ text "Openning tabs..."
+                        , button
+                            [ class "padding-xs marginLeft-l rounded background-white hover-opacity color-black fontWeight-400"
+                            , onClick DisconnectWorkspace
+                            , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
+                            , onBlur ElementBlurred
+                            ]
+                            [ text "Disconnect" ]
+                        ]
                     ]
                 , viewCards workspacesIds model.data.workspacesInfo
                 , viewFooter model
@@ -484,14 +492,14 @@ view model =
             in
             div [ id "root" ]
                 [ viewHeader
-                , div [ class "flex height-m flexDirection-col justifyContent-space-between alignItems-center padding-m background-black" ]
+                , div [ class "flex height-m flexDirection-col justifyContent-space-between alignItems-center padding-m background-secondary" ]
                     [ div [ class "color-contrast fontSize-xl marginBottom-m" ]
                         [ workspaceName ]
                     , div [ class "marginBottom-m" ]
                         [ span [ class "color-contrast" ]
                             [ text <| String.fromInt model.data.numTabsInUse ++ " Tabs" ]
                         , button
-                            [ class "padding-xs marginLeft-l rounded background-white hover-opacity color-black fontWeight-400"
+                            [ class "padding-xs marginLeft-l rounded background-white hover-opacity color-black fontWeight-400 temp-neo-button"
                             , onClick DisconnectWorkspace
                             , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
                             , onBlur ElementBlurred
@@ -584,26 +592,17 @@ view model =
 viewHeader : Html Msg
 viewHeader =
     let
-        gitHubLink =
-            a
-                [ target "_blank"
-                , href "https://github.com/haderman/tabs-manager-chrome-extension"
-                , tabindex 1
-                , onFocus <| ElementFocused GitHubLinkeFocused
-                , onBlur ElementBlurred
-                , class "hover-opacity"
+        logo =
+            img
+                [ class "height-s"
+                , src "/assets/brand/woki_text_blue_purple.svg"
                 ]
-                [ img
-                    [ class "height-xs width-xs"
-                    , src "/assets/icons/github-light-32px.png"
-                    ]
-                    []
-                ]
+                []
 
         addShorcutLink =
             a
                 [ href "#"
-                , class "color-highlighted hover-opacity"
+                , class "color-highlighted hover-opacity temp-neo-button"
                 , onClick <| OpenChromePage "chrome://extensions/shortcuts"
                 , tabindex 2
                 , onFocus <| ElementFocused AddShortcutLinkFocused
@@ -622,7 +621,7 @@ viewHeader =
                 , tabindex 3
                 , onFocus <| ElementFocused SettingsLinkFocused
                 , onBlur ElementBlurred
-                , class "hover-opacity"
+                , class "hover-opacity temp-neo-button circle inline-flex justifyContent-center alignItems-center"
                 ]
                 [ img
                     [ class "height-xs width-xs hover-opacity"
@@ -631,8 +630,8 @@ viewHeader =
                     []
                 ]
     in
-    div [ class "background-primary padding-s flex alignItems-center justifyContent-space-between" ]
-        [ gitHubLink
+    div [ class "background-secondary padding-s flex alignItems-center justifyContent-space-between" ]
+        [ logo
         , span [ class "flex alignItems-center" ]
             [ addShorcutLink
             , separator
@@ -658,13 +657,13 @@ viewCards workspacesIds workspacesInfo =
     in
     case workspacesIds of
         [] ->
-            div [ class "flex justifyContent-center alignItems-center padding-m" ]
+            div [ class "flex justifyContent-center alignItems-center padding-m background-secondary neo-inset-secondary" ]
                 [ h3 [ class "color-contrast textAlign-center" ]
                     [ text "You don't have more workspaces created" ]
                 ]
 
         _ ->
-            div [ class "grid gridTemplateCol-3 gridGap-xs padding-m paddingTop-xl" ]
+            div [ class "grid gridTemplateCol-3 gridGap-xs padding-m paddingTop-xl background-secondary neo-inset-secondary" ]
                 (workspacesIds
                     |> List.map getWorkspace
                     |> List.map viewCardOrEmptyText
@@ -759,9 +758,9 @@ formContainerStyle =
         , "flexDirection-col"
         , "justifyContent-space-between"
         , "alignItems-center"
-        , "ackdrop-filter-blur"
+        , "backdrop-filter-blur"
         , "padding-l"
-        , "background-black"
+        , "background-secondary"
         , "height-m"
         ]
 
@@ -846,10 +845,9 @@ viewFooter model =
                 , "backdrop-filter-blur"
                 , "sticky"
                 , "bottom-0"
-                , "background-transparent"
-                , "gradient-blackToTransparent"
+                , "background-secondary"
+                -- , "gradient-blackToTransparent"
                 , "height-s"
-                , "marginTop-s"
                 ]
 
         helpContainerStyle =
@@ -863,6 +861,22 @@ viewFooter model =
                 , "full-height"
                 , "rounded"
                 , "letterSpacing-05"
+                ]
+
+        gitHubLink =
+            a
+                [ target "_blank"
+                , href "https://github.com/haderman/tabs-manager-chrome-extension"
+                , tabindex 1
+                , onFocus <| ElementFocused GitHubLinkeFocused
+                , onBlur ElementBlurred
+                , class "hover-opacity"
+                ]
+                [ img
+                    [ class "height-xs width-xs"
+                    , src "/assets/icons/github-light-32px.png"
+                    ]
+                    []
                 ]
 
         highlighted =
@@ -1017,6 +1031,7 @@ viewFooter model =
             [ navigationHelp
             , formHelp
             ]
+        , gitHubLink
         ]
 
 

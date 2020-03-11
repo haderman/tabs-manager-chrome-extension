@@ -25,5 +25,12 @@
   "chrome_url_overrides" : {
     "newtab": "newtab/newtab.html"
   },
+  "icons": {
+    "16": "assets/woki_logo_16px.png",
+    "24": "assets/woki_logo_24px.png",
+    "32": "assets/woki_logo_32px.png",
+    "48": "assets/woki_logo_48px.png",
+    "128": "assets/woki_logo_128px.png"
+  },
   "manifest_version": 2
 }

@@ -30,6 +30,9 @@ section {
 
 input {
   border: none;
+  border-radius: 4px;
+  background: #031319;
+  box-shadow: inset 2px 2px 4px #000000, inset -1px -1px 2px 0px #0c3d4c;
 }
 
 fieldset {
@@ -38,6 +41,7 @@ fieldset {
 
 button {
   border: none;
+  cursor: pointer;
 }
 
 button:hover {
@@ -235,7 +239,7 @@ img::before {
 .padding-s { padding: 8px; }
 .padding-m { padding: 10px; }
 .padding-l { padding: 12px; }
-.padding-xl { padding: 15px; }
+.padding-xl { padding: 25px; }
 .paddingLeft-none { padding-left: 0px; }
 .paddingLeft-xs { padding-left: 3px; }
 .paddingLeft-s { padding-left: 8px; }
@@ -253,7 +257,13 @@ img::before {
 .paddingTop-s { padding-top: 8px; }
 .paddingTop-m { padding-top: 10px; }
 .paddingTop-l { padding-top: 12px; }
-.paddingTop-xl { padding-top: 20px; }
+.paddingTop-xl { padding-top: 25px; }
+.paddingBottom-none { padding-top: 0px; }
+.paddingBottom-xs { padding-bottom: 3px; }
+.paddingBottom-s { padding-bottom: 8px; }
+.paddingBottom-m { padding-bottom: 10px; }
+.paddingBottom-l { padding-bottom: 12px; }
+.paddingBottom-xl { padding-bottom: 25px; }
 .marginLeft-none { margin-left: 0px; }
 .marginLeft-xs { margin-left: 3px; }
 .marginLeft-s { margin-left: 8px; }
@@ -287,9 +297,9 @@ img::before {
 /* GRID */
 .grid { display: grid; }
 .gridTemplateCol-2 { grid-template-columns: auto auto; }
-.gridTemplateCol-3 { grid-template-columns: 130px 130px 130px; }
+.gridTemplateCol-3 { grid-template-columns: 120px 120px 120px; }
 .gridTemplateCol-repeat-xl { grid-template-columns: repeat(auto-fill, 380px); }
-.gridGap-xs { grid-gap: 10px; }
+.gridGap-xs { grid-gap: 12px; }
 .gridGap-s { grid-gap: 30px; }
 .gridGap-m { grid-gap: 50px; }
 .gridGap-l { grid-gap: 80px; }
@@ -542,14 +552,66 @@ img::before {
   background: #061c23;
   box-shadow: 5px 5px 6px #05181d, -5px -5px 6px #072029;
   color: #38d1f9;
-  /* border: 1px solid black; */
-  padding: 8px;
-  box-shadow: 5px 5px 6px #041116, -5px -5px 6px #082730;
+  padding: 6px;
   text-decoration: none;
   font-size: 12px;
   font-weight: 400;
-  box-shadow: 3px 3px 6px #05151b,
-              -3px -3px 6px #07232b;
-  box-shadow: 3px 3px 6px #041217,
-              -3px -3px 6px #08262f;
+  box-shadow: 3px 3px 6px #000000,
+              -1px -1px 3px #00779c;
 }
+
+.temp-neo-keyboard-help {
+  border-radius: 4px;
+  padding: 2px 5px;
+  margin-right: 5px;
+  border: 1px solid #a98704;
+  background: #061c23;
+  box-shadow: inset 4px 4px 4px 0px #041318, inset -5px -5px 3px 5px #08252e, 1px 1px 1px #000000, -1px -1px 3px -1px #00779c;
+  font-weight: 200;
+  color: #a98704;
+}
+
+.neo-divisor {
+  height: 2px;
+  background: #0c3948;
+  border-top: 2px solid #000;
+}
+
+.neo-card-style-1 {
+  border-radius: 4px;
+  padding: 2px 5px;
+  background: #061c23;
+  font-weight: 200;
+  box-shadow: 3px 3px 6px #000000, -1px -1px 3px #00779c;
+}
+
+.neo-card-style-1:hover {
+  box-shadow: none;
+}
+
+.neo-card-style-1 > p:first-child {
+  font-size: 20px;
+}
+
+.neo-card-style-1 > div:last-child {
+  color: darkgray;
+  font-size: 12px;
+  text-align: left;
+}
+
+
+
+button:focus {
+  outline: none;
+  box-shadow: rgba(0, 0, 0, 0.5) 0px 0px 0px 4px, rgba(255, 255, 255, 0.7) 0px 0px 0px 4px;
+}
+
+a:focus {
+  outline: none;
+  box-shadow: rgba(0, 0, 0, 0.5) 0px 0px 0px 4px, rgba(255, 255, 255, 0.7) 0px 0px 0px 4px;
+}
+
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+

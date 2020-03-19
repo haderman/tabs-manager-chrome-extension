@@ -518,6 +518,11 @@ view model =
                 ]
 
         Idle ->
+            let
+                divisor =
+                    div [ class "full-width neo-divisor" ]
+                        []
+            in
             case model.formCardStatus of
                 Collapsed ->
                     let
@@ -531,6 +536,7 @@ view model =
                             , backdrop
                             ]
                         , viewFormCollapsed model
+                        , divisor
                         , div [ class "relative flex justifyContent-center" ]
                             [ viewCards model.data.workspacesIds model.data.workspacesInfo
                             , backdrop
@@ -550,6 +556,7 @@ view model =
                             , backdrop
                             ]
                         , viewFormExpanded model.formData model.colorList
+                        , divisor
                         , div [ class "relative flex justifyContent-center" ]
                             [ viewCards model.data.workspacesIds model.data.workspacesInfo
                             , backdrop
@@ -602,7 +609,7 @@ viewHeader =
         addShorcutLink =
             a
                 [ href "#"
-                , class "color-highlighted hover-opacity temp-neo-button"
+                , class "color-highlighted hover-opacity temp-neo-button rounded"
                 , onClick <| OpenChromePage "chrome://extensions/shortcuts"
                 , tabindex 2
                 , onFocus <| ElementFocused AddShortcutLinkFocused
@@ -654,16 +661,25 @@ viewCards workspacesIds workspacesInfo =
                 Nothing ->
                     text ""
 
+        baseStyleContainer =
+            String.join " "
+                [ "justifyContent-center"
+                , "alignItems-center"
+                , "paddingTop-xl"
+                , "paddingBottom-xl"
+                , "background-secondary"
+                , "full-width"
+                ]
     in
     case workspacesIds of
         [] ->
-            div [ class "flex justifyContent-center alignItems-center padding-m background-secondary neo-inset-secondary" ]
+            div [ class <| "flex " ++ baseStyleContainer ]
                 [ h3 [ class "color-contrast textAlign-center" ]
                     [ text "You don't have more workspaces created" ]
                 ]
 
         _ ->
-            div [ class "grid gridTemplateCol-3 gridGap-xs padding-m paddingTop-xl background-secondary neo-inset-secondary" ]
+            div [ class <| "grid gridTemplateCol-3 gridGap-xs " ++ baseStyleContainer]
                 (workspacesIds
                     |> List.map getWorkspace
                     |> List.map viewCardOrEmptyText
@@ -674,15 +690,21 @@ viewCard : W.Workspace -> Html Msg
 viewCard { id, name, color, tabs } =
     let
         title =
-            div [ class <| "fontSize-l ellipsis overflow-hidden whiteSpace-nowrap textAlign-left color-contrast _color-" ++ C.fromColorToString color ]
+            p [ class <| "fontSize-m marginBottom-xs ellipsis overflow-hidden whiteSpace-nowrap textAlign-left color-contrast _color-" ++ C.fromColorToString color ]
                 [ text name ]
 
         tabsCount num =
-            div [ class "fontSize-xs color-contrast textAlign-left" ]
+            div [ class "textAlign-left color-contrast" ]
                 [ text <| String.fromInt num ++ " Tabs" ]
+
+        style1 =
+            "padding-xs paddingLeft-m paddingRight-m neo-card-style-1 border-s borderColor-" ++ C.fromColorToString color
+
+        style2 =
+            "rounded padding-xs paddingLeft-m paddingRight-m gradient-" ++ C.fromColorToString color
     in
     button
-        [ class <| "rounded padding-xs paddingLeft-m paddingRight-m gradient-" ++ C.fromColorToString color
+        [ class style1
         , autofocus False
         , tabindex 0
         , onClick <| OpenWorkspace id
@@ -770,14 +792,12 @@ inputStyle : String
 inputStyle =
     String.join " "
         [ "fontSize-l"
-        , "background-transparent"
         , "marginTop-none"
         , "marginBottom-m"
         , "fontWeight-200"
         , "color-contrast"
         , "padding-xs"
         , "textAlign-center"
-        , "background-black"
         ]
 
 
@@ -840,7 +860,7 @@ viewFooter model =
             String.join " "
                 [ "flex"
                 , "justfyContet-space-between"
-                , "alignContent-flexEnd"
+                , "alignItems-center"
                 , "padding-m"
                 , "backdrop-filter-blur"
                 , "sticky"
@@ -853,10 +873,9 @@ viewFooter model =
         helpContainerStyle =
             String.join " "
                 [ "full-width"
-                , "flex"
+                , "inline-flex"
                 , "justifyContent-flexStart"
-                , "alignItems-flexStart"
-                , "flexDirection-colReverse"
+                , "alignItems-center"
                 , "color-contrast"
                 , "full-height"
                 , "rounded"
@@ -870,7 +889,7 @@ viewFooter model =
                 , tabindex 1
                 , onFocus <| ElementFocused GitHubLinkeFocused
                 , onBlur ElementBlurred
-                , class "hover-opacity"
+                , class "hover-opacity temp-neo-button circle inline-flex justifyContent-center alignItems-center"
                 ]
                 [ img
                     [ class "height-xs width-xs"
@@ -879,28 +898,39 @@ viewFooter model =
                     []
                 ]
 
-        highlighted =
-            class "color-highlighted"
+        keyIconContainer =
+            span [ class "temp-neo-keyboard-help" ]
+
+        textHelpContainer =
+            span [ class "marginRight-s" ]
 
         arrowLeft =
-            span [ highlighted ]
+            keyIconContainer
                 [ text "\u{2190}" ]
 
         arrowRight =
-            span [ highlighted ]
+            keyIconContainer
                 [ text "\u{2192}" ]
 
         arrowDown =
-            span [ highlighted ]
+            keyIconContainer
                 [ text "\u{2193}" ]
 
         arrowUp =
-            span [ highlighted ]
+            keyIconContainer
                 [ text "\u{2191}" ]
 
         enter =
-            span [ highlighted ]
+            keyIconContainer
                 [ text "\u{21B2}" ]
+
+        space =
+            keyIconContainer
+                [ text "Space" ]
+
+        tab =
+            keyIconContainer
+                [ text "Tab" ]
 
         robot =
             span [ class "fontSize-s" ]
@@ -911,7 +941,7 @@ viewFooter model =
                 Collapsed ->
                     case model.formData.status of
                         WithErrors ->
-                            p []
+                            textHelpContainer
                                 [ robot
                                 , text "You must to type a name to save the current tabs"
                                 ]
@@ -925,13 +955,13 @@ viewFooter model =
                             text ""
 
                         Filled ->
-                            p []
+                            textHelpContainer
                                 [ enter
-                                , text " To save the current tabs"
+                                , text "Save"
                                 ]
 
                         WithErrors ->
-                            p []
+                            textHelpContainer
                                 [ robot
                                 , text "You must to type a name to save the current tabs"
                                 ]
@@ -939,10 +969,9 @@ viewFooter model =
         navigationHelp =
             case model.focusStatus of
                 WithoutFocus ->
-                    p []
-                        [ span [ highlighted ]
-                            [ text "Tab" ]
-                        , text " To navigate between UI elements"
+                    textHelpContainer
+                        [ tab
+                        , text "Move"
                         ]
 
                 WorkspaceNameInputFocused ->
@@ -958,10 +987,9 @@ viewFooter model =
                                             text ""
 
                                         _ ->
-                                            p []
-                                                [ span [ highlighted ]
-                                                    [ text "Tab" ]
-                                                , text " To navigate between workspaces created"
+                                            textHelpContainer
+                                                [ tab
+                                                , text "Move"
                                                 ]
 
                                 _ ->
@@ -970,66 +998,68 @@ viewFooter model =
                                             text ""
 
                                         _ ->
-                                            p []
-                                                [ span [ highlighted ]
-                                                    [ text "Tab" ]
-                                                , text " To navigate between workspaces created"
+                                            textHelpContainer
+                                                [ tab
+                                                , text "Move"
                                                 ]
 
                         Expanded ->
-                            p []
+                            textHelpContainer
                                 [ arrowDown
-                                , text " To focus the colors group"
+                                , text "Change Field"
                                 ]
 
                 RadioGroupColorsFocused ->
-                    p []
-                        [ arrowUp
-                        , text " To focus the input text and "
-                        , arrowLeft
-                        , arrowRight
-                        , text " To chan ge the color"
+                    textHelpContainer
+                        [ textHelpContainer
+                            [ arrowUp
+                            , text "Change Field"
+                            ]
+                        , textHelpContainer
+                            [ arrowLeft
+                            , arrowRight
+                            , text "Change Color"
+                            ]
                         ]
 
                 WorkspaceCardFocused ->
-                    p []
-                        [ span [ highlighted ]
-                            [ text "Space" ]
+                    textHelpContainer
+                        [ space
                         , text " or "
                         , enter
-                        , text " To open the workspace tabs"
+                        , text "Open"
                         ]
 
                 GitHubLinkeFocused ->
-                    p []
+                    textHelpContainer
                         [ enter
-                        , text " To go to repository on github"
+                        , text "Open Github Project"
                         ]
 
                 AddShortcutLinkFocused ->
-                    p []
+                    textHelpContainer
                         [ enter
-                        , text " If you want to add shortcut to open this popup whit the keyboard"
+                        , text "Add Shortcut Keyboard"
                         ]
 
                 SettingsLinkFocused ->
-                    p []
+                    textHelpContainer
                         [ enter
-                        , text " To go to the advanced view"
+                        , text "Advanced View"
                         ]
 
                 DisconnectWorkspaceButtonFocused ->
-                    p []
+                    textHelpContainer
                         [ enter
-                        , text " To disconnect of the current workspace"
+                        , text "Disconnect Workspace"
                         ]
 
 
     in
     div [ class rootStyle ]
         [ div [ class helpContainerStyle ]
-            [ navigationHelp
-            , formHelp
+            [ formHelp
+            , navigationHelp
             ]
         , gitHubLink
         ]

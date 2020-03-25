@@ -197,7 +197,7 @@ function handleOnTabUpdated(tabId, changeInfo, tab) {
 
     const isWorkspaceOpened = (
       model.modelsByWindowsID[tab.windowId].numTabsClosing === 0
-      && model.modelsByWindowsID[tab.windowId].numTabsOpening === 0
+      // && model.modelsByWindowsID[tab.windowId].numTabsOpening === 0
     );
 
     if (isWorkspaceOpened) {
@@ -239,7 +239,7 @@ function handleOnTabRemoved(tabId, { windowId, isWindowClosing }) {
 
     const isWorkspaceOpened = (
       model.modelsByWindowsID[windowId].numTabsClosing === 0
-      && model.modelsByWindowsID[windowId].numTabsOpening === 0
+      // && model.modelsByWindowsID[windowId].numTabsOpening === 0
     );
 
     if (isWorkspaceOpened) {

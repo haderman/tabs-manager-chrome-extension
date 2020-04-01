@@ -1,6 +1,6 @@
 {
   "name": "Woki",
-  "version": "1.0",
+  "version": "0.01",
   "description": "Manage your tabs with workspaces",
   "permissions": [
     "sessions",

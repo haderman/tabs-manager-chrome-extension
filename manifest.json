@@ -3,11 +3,8 @@
   "version": "0.01",
   "description": "Manage your tabs with workspaces",
   "permissions": [
-    "sessions",
     "tabs",
-    "storage",
-    "declarativeContent",
-    "activeTab"
+    "storage"
   ],
   "background": {
     "scripts": [

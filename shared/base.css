@@ -599,8 +599,6 @@ img::before {
   text-align: left;
 }
 
-
-
 button:focus {
   outline: none;
   box-shadow: rgba(0, 0, 0, 0.5) 0px 0px 0px 4px, rgba(255, 255, 255, 0.7) 0px 0px 0px 4px;
@@ -614,4 +612,8 @@ a:focus {
 *:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Golden Section */
+.golden { z-index: 999999999999999; }
+.golden div { outline: 1px solid darkgoldenrod; }
 

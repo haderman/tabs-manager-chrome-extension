@@ -570,7 +570,7 @@ view model =
                     "\u{1F44B}"
 
                 greet =
-                    div [ class "color-contrast fontSize-m textAlign-center marginBottom-xl" ]
+                    div [ class "background-secondary color-contrast fontSize-m textAlign-center padding-l" ]
                         [ p []
                             [ text <| wavingHand ++ " You are using "
                             , span [ class "color-alternate" ]
@@ -587,7 +587,8 @@ view model =
                         ]
             in
             div [ id "root" ]
-                [ viewHeader
+                [ div [ class "background-secondary padding-m flex alignItems-center justifyContent-center" ]
+                    [ viewLogo ]
                 , div [ class "relative flex flexDirection-col justifyContent-center alignItems-stretch alignText-center" ]
                     [ greet
                     , viewFormExpanded model.formData model.colorList
@@ -596,16 +597,19 @@ view model =
                 ]
 
 
+viewLogo : Html Msg
+viewLogo =
+    img
+        [ class "height-s"
+        , src "/assets/brand/woki_text_blue_purple.svg"
+        , alt "Woki logo"
+        ]
+        []
+
+
 viewHeader : Html Msg
 viewHeader =
     let
-        logo =
-            img
-                [ class "height-s"
-                , src "/assets/brand/woki_text_blue_purple.svg"
-                ]
-                []
-
         addShorcutLink =
             a
                 [ href "#"
@@ -638,7 +642,7 @@ viewHeader =
                 ]
     in
     div [ class "background-secondary padding-s flex alignItems-center justifyContent-space-between" ]
-        [ logo
+        [ viewLogo
         , span [ class "flex alignItems-center" ]
             [ addShorcutLink
             , separator
@@ -668,18 +672,17 @@ viewCards workspacesIds workspacesInfo =
                 , "paddingTop-xl"
                 , "paddingBottom-xl"
                 , "background-secondary"
-                , "full-width"
                 ]
     in
     case workspacesIds of
         [] ->
-            div [ class <| "flex " ++ baseStyleContainer ]
+            div [ class <| "flex padding-xl " ++ baseStyleContainer ]
                 [ h3 [ class "color-contrast textAlign-center" ]
                     [ text "You don't have more workspaces created" ]
                 ]
 
         _ ->
-            div [ class <| "grid gridTemplateCol-3 gridGap-xs " ++ baseStyleContainer]
+            div [ class <| "grid gridTemplateCol-3 gridGap-xs full-width " ++ baseStyleContainer]
                 (workspacesIds
                     |> List.map getWorkspace
                     |> List.map viewCardOrEmptyText
@@ -831,7 +834,7 @@ viewRadioGroupColors color colorList =
     div
         [ class "flex opacity-70 padding-m height-xs"
         , id <| fromFocusStatusToElementId RadioGroupColorsFocused
-        , tabindex 1
+        , tabindex 0
         , onBlur ElementBlurred
         , onFocus <| ElementFocused RadioGroupColorsFocused
         ]
@@ -922,7 +925,7 @@ viewFooter model =
 
         enter =
             keyIconContainer
-                [ text "\u{21B2}" ]
+                [ text "Enter" ]
 
         space =
             keyIconContainer

@@ -1,48 +1,117 @@
-module Color exposing (..)
+module Color exposing
+    ( Color
+    , list
+    , default
+    , decoder
+    , toBackgroundCSS
+    , fromColorToString
+    , fromStringToColor
+    )
 
 import Json.Decode as D
 
 
 type Color
-    = Green
-    | Blue
-    | Orange
-    | Purple
-    | Yellow
-    | Red
-    | Gray
-    | Cyan
+    = ColorA
+    | ColorB
+    | ColorC
+    | ColorD
+    | ColorE
+    | ColorF
+    | ColorG
+    | ColorH
+    | ColorI
+
+
+list : List Color
+list =
+    [ ColorA
+    , ColorB
+    , ColorC
+    , ColorD
+    , ColorE
+    , ColorF
+    , ColorG
+    , ColorH
+    , ColorI
+    ]
+
+
+default : Color
+default =
+    ColorA
+
+
+toBackgroundCSS : Color -> String
+toBackgroundCSS color =
+    "background-" ++ toString color
 
 
 
 -- HELPERS
 
 
+toString : Color -> String
+toString color =
+    case color of
+        ColorA ->
+            "a"
+
+        ColorB ->
+            "b"
+
+        ColorC ->
+            "c"
+
+        ColorD ->
+            "d"
+
+        ColorE ->
+            "e"
+
+        ColorF ->
+            "f"
+
+        ColorG ->
+            "g"
+
+        ColorH ->
+            "h"
+
+        ColorI ->
+            "i"
+
+
+
+
 fromColorToString : Color -> String
 fromColorToString color =
     case color of
-        Green ->
+        ColorA ->
             "green"
 
-        Blue ->
+        ColorB ->
             "blue"
 
-        Orange ->
+        ColorC ->
             "orange"
 
-        Purple ->
+        ColorD ->
             "purple"
 
-        Yellow ->
+        ColorE ->
             "yellow"
 
-        Red ->
+        ColorF ->
             "red"
 
-        Gray ->
+        ColorG ->
             "gray"
 
-        Cyan ->
+        ColorH ->
+            "cyan"
+
+        ColorI ->
             "cyan"
 
 
@@ -50,31 +119,31 @@ fromStringToColor : String -> Color
 fromStringToColor str =
     case str of
         "green" ->
-            Green
+            ColorA
 
         "blue" ->
-            Blue
+            ColorB
 
         "orange" ->
-            Orange
+            ColorC
 
         "purple" ->
-            Purple
+            ColorD
 
         "yellow" ->
-            Yellow
+            ColorE
 
         "red" ->
-            Red
+            ColorF
 
         "gray" ->
-            Gray
+            ColorG
 
         "cyan" ->
-            Cyan
+            ColorH
 
         _ ->
-            Gray
+            ColorI
 
 
 

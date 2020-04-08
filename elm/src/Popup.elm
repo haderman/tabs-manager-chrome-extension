@@ -113,18 +113,6 @@ type alias Model =
     }
 
 
-initColorList : List C.Color
-initColorList =
-    [ C.Green
-    , C.Blue
-    , C.Orange
-    , C.Purple
-    , C.Yellow
-    , C.Red
-    , C.Gray
-    , C.Cyan
-    ]
-
 
 initModel : Model
 initModel =
@@ -138,11 +126,11 @@ initModel =
     , formCardStatus = Collapsed
     , formData =
         { name = ""
-        , color = C.Green
+        , color = C.default
         , status = Empty
         }
     , focusStatus = WithoutFocus
-    , colorList = initColorList
+    , colorList = C.list
     }
 
 
@@ -481,33 +469,36 @@ view model =
                 workspacesIds =
                     List.filter idInUse model.data.workspacesIds
 
-                workspaceName =
+                viewWorkspace =
                     case Dict.get workspaceId model.data.workspacesInfo of
                         Just { name, color } ->
-                            span [ Html.Attributes.class <| "color-" ++ C.fromColorToString color ]
-                                [ Html.text name ]
+                            div [ class <| "flex flex-1 column justify-space-between inset-m " ++ C.toBackgroundCSS color ]
+                                [ div [ class "text-primary text-l gutterBottom-xs" ]
+                                    [ span []
+                                        [ Html.text name ]
+                                    ]
+                                , div []
+                                    [ span [ class "text-primary" ]
+                                        [ text <| String.fromInt model.data.numTabsInUse ++ " Tabs" ]
+                                    -- , button
+                                    --     [ class "temp-neo-button-blue padding-xs marginLeft-l rounded background-white hover-opacity color-black fontWeight-400 temp-neo-button"
+                                    --     , onClick DisconnectWorkspace
+                                    --     , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
+                                    --     , onBlur ElementBlurred
+                                    --     ]
+                                    --     [ text "Disconnect" ]
+                                    ]
+                                ]
 
                         Nothing ->
                             Html.text ""
             in
             div [ id "root" ]
                 [ viewHeader
-                , div [ class "flex height-m flexDirection-col justifyContent-space-between alignItems-center padding-m background-secondary" ]
-                    [ div [ class "color-contrast fontSize-xl marginBottom-m" ]
-                        [ workspaceName ]
-                    , div [ class "marginBottom-m" ]
-                        [ span [ class "color-contrast" ]
-                            [ text <| String.fromInt model.data.numTabsInUse ++ " Tabs" ]
-                        , button
-                            [ class "padding-xs marginLeft-l rounded background-white hover-opacity color-black fontWeight-400 temp-neo-button"
-                            , onClick DisconnectWorkspace
-                            , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
-                            , onBlur ElementBlurred
-                            ]
-                            [ text "Disconnect" ]
-                            ]
+                , div [ class "flex" ]
+                    [ viewWorkspace
                     ]
-                , viewCards workspacesIds model.data.workspacesInfo
+                , viewListWorkspaces workspacesIds model.data.workspacesInfo
                 , viewFooter model
                 ]
 
@@ -537,7 +528,7 @@ view model =
                             ]
                         , viewFormCollapsed model
                         , divisor
-                        , div [ class "relative flex justifyContent-center" ]
+                        , div [ class "relative" ]
                             [ viewCards model.data.workspacesIds model.data.workspacesInfo
                             , backdrop
                             ]
@@ -557,7 +548,7 @@ view model =
                             ]
                         , viewFormExpanded model.formData model.colorList
                         , divisor
-                        , div [ class "relative flex justifyContent-center" ]
+                        , div [ class "relative" ]
                             [ viewCards model.data.workspacesIds model.data.workspacesInfo
                             , backdrop
                             ]
@@ -570,7 +561,7 @@ view model =
                     "\u{1F44B}"
 
                 greet =
-                    div [ class "background-secondary color-contrast fontSize-m textAlign-center padding-l" ]
+                    div [ class "color-contrast fontSize-m textAlign-center padding-l" ]
                         [ p []
                             [ text <| wavingHand ++ " You are using "
                             , span [ class "color-alternate" ]
@@ -587,7 +578,7 @@ view model =
                         ]
             in
             div [ id "root" ]
-                [ div [ class "background-secondary padding-m flex alignItems-center justifyContent-center" ]
+                [ div [ class "padding-m flex alignItems-center justifyContent-center" ]
                     [ viewLogo ]
                 , div [ class "relative flex flexDirection-col justifyContent-center alignItems-stretch alignText-center" ]
                     [ greet
@@ -641,14 +632,54 @@ viewHeader =
                     []
                 ]
     in
-    div [ class "background-secondary padding-s flex alignItems-center justifyContent-space-between" ]
+    div [ class "inset-s gutterBottom-s flex align-center justify-space-between" ]
         [ viewLogo
-        , span [ class "flex alignItems-center" ]
+        , span [ class "flex align-center" ]
             [ addShorcutLink
             , separator
             , settingsLink
             ]
         ]
+
+
+viewListWorkspaces : List W.WorkspaceId -> Dict W.WorkspaceId W.Workspace -> Html Msg
+viewListWorkspaces workspacesIds workspacesInfo =
+    let
+        emptyMessage =
+            div [ class <| "flex padding-xl justifyContent-center alignItems-center paddingTop-xl paddingBottom-xl" ]
+                [ h3 [ class "color-contrast textAlign-center" ]
+                    [ text "You don't have more workspaces created" ]
+                ]
+
+        getWorkspace id =
+            Dict.get id workspacesInfo
+
+        tabsCountLabel numTabs =
+            if numTabs == 1 then
+                "1 Tab"
+            else
+                (String.fromInt numTabs) ++ " Tabs"
+
+        viewWorkspace { id, name, color, tabs } =
+            li [ class "gutterBottom-s" ]
+                [ p [ class "text-primary text-l" ]
+                    [ Html.text name ]
+                , p [ class "text-secondary" ]
+                    [ Html.text <| tabsCountLabel <| List.length tabs ]
+                ]
+    in
+    case workspacesIds of
+        [] ->
+            emptyMessage
+
+        _ ->
+            ul [ class "inset-m" ]
+                (workspacesIds
+                    |> List.map getWorkspace
+                    |> List.filterMap identity
+                    |> List.map viewWorkspace
+                )
+
 
 
 viewCards : List W.WorkspaceId -> Dict W.WorkspaceId W.Workspace -> Html Msg
@@ -665,28 +696,31 @@ viewCards workspacesIds workspacesInfo =
                 Nothing ->
                     text ""
 
-        baseStyleContainer =
-            String.join " "
-                [ "justifyContent-center"
-                , "alignItems-center"
-                , "paddingTop-xl"
-                , "paddingBottom-xl"
-                , "background-secondary"
-                ]
+        viewGrid =
+            div [ class <| "grid gridTemplateCol-3 gridGap-xs"]
+                (workspacesIds
+                    |> List.map getWorkspace
+                    |> List.map viewCardOrEmptyText
+                )
+
+        viewList =
+            div [ class <| "grid gridTemplateCol-3 gridGap-xs"]
+                (workspacesIds
+                    |> List.map getWorkspace
+                    |> List.map viewCardOrEmptyText
+                )
     in
     case workspacesIds of
         [] ->
-            div [ class <| "flex padding-xl " ++ baseStyleContainer ]
+            div [ class <| "flex padding-xl justifyContent-center alignItems-center paddingTop-xl paddingBottom-xl" ]
                 [ h3 [ class "color-contrast textAlign-center" ]
                     [ text "You don't have more workspaces created" ]
                 ]
 
         _ ->
-            div [ class <| "grid gridTemplateCol-3 gridGap-xs full-width " ++ baseStyleContainer]
-                (workspacesIds
-                    |> List.map getWorkspace
-                    |> List.map viewCardOrEmptyText
-                )
+            div [ class "padding-m paddingTop-xl" ]
+                [ viewGrid ]
+
 
 
 viewCard : W.Workspace -> Html Msg
@@ -701,7 +735,7 @@ viewCard { id, name, color, tabs } =
                 [ text <| String.fromInt num ++ " Tabs" ]
 
         style1 =
-            "padding-xs paddingLeft-m paddingRight-m neo-card-style-1 border-s borderColor-" ++ C.fromColorToString color
+            "padding-xs paddingLeft-m paddingRight-m neo-card-style-1 border-s _borderColor-" ++ C.fromColorToString color
 
         style2 =
             "rounded padding-xs paddingLeft-m paddingRight-m gradient-" ++ C.fromColorToString color
@@ -785,7 +819,6 @@ formContainerStyle =
         , "alignItems-center"
         , "backdrop-filter-blur"
         , "padding-l"
-        , "background-secondary"
         , "height-m"
         ]
 
@@ -868,7 +901,6 @@ viewFooter model =
                 , "backdrop-filter-blur"
                 , "sticky"
                 , "bottom-0"
-                , "background-secondary"
                 -- , "gradient-blackToTransparent"
                 , "height-s"
                 ]

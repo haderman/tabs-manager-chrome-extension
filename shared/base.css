@@ -41,6 +41,7 @@ fieldset {
 button {
   border: none;
   cursor: pointer;
+  background-color: transparent;
 }
 
 button:hover {
@@ -662,15 +663,15 @@ VERSION - 2
   --background-deep-4: rgb(84, 84, 86);
   --background-deep-5: rgb(124, 124, 128);
   --background-deep-6: rgb(174, 174, 178);
-  --color-a: rgb(64, 156, 255);
-  --color-b: rgb(48, 219, 91);
-  --color-c: rgb(125, 122, 255);
-  --color-d: rgb(255, 179, 64);
-  --color-e: rgb(255, 100, 130);
-  --color-f: rgb(218, 143, 155);
-  --color-g: rgb(255, 105, 97);
-  --color-h: rgb(112, 215, 255);
-  --color-i: rgb(255, 212, 38);
+  --color-a: rgb(10, 132, 255);
+  --color-b: rgb(48, 209, 88);
+  --color-c: rgb(94, 92, 230);
+  --color-d: rgb(255, 159, 10);
+  --color-e: rgb(255, 55, 95);
+  --color-f: rgb(191, 90, 242);
+  --color-g: rgb(255, 69, 58);
+  --color-h: rgb(100, 210, 255);
+  --color-i: rgb(255, 214, 10);
 }
 
 /* light theme */
@@ -680,21 +681,21 @@ VERSION - 2
   --text-interactive: rgb(5, 129, 48);
   --text-disabled: rgb(204, 204, 204);
   --text-error: rgb(200, 57, 62);
-  --background-deep-0: rgb(235, 235, 240);
-  --background-deep-1: rgb(216, 216, 220);
-  --background-deep-2: rgb(188, 188, 192);
+  --background-deep-0: rgb(247, 247, 247);
+  --background-deep-1: rgb(231, 231, 231);
+  --background-deep-2: rgb(211, 211, 211);
   --background-deep-3: rgb(174, 174, 178);
   --background-deep-4: rgb(142, 142, 147);
   --background-deep-5: rgb(108, 108, 112);
-  --color-a: rgb(0, 64, 221);
-  --color-b: rgb(36, 138, 61);
-  --color-c: rgb(54, 52, 163);
-  --color-d: rgb(201, 52, 0);
-  --color-e: rgb(211, 15, 69);
-  --color-f: rgb(137, 68, 171);
-  --color-g: rgb(215, 0, 21);
-  --color-h: rgb(0, 113, 164);
-  --color-i: rgb(178, 80, 0);
+  --color-a: rgb(0, 122, 255);
+  --color-b: rgb(52, 199, 89);
+  --color-c: rgb(88, 86, 214);
+  --color-d: rgb(255, 149, 0);
+  --color-e: rgb(255, 45, 85);
+  --color-f: rgb(175, 82, 222);
+  --color-g: rgb(255, 59, 48);
+  --color-h: rgb(90, 200, 250);
+  --color-i: rgb(255, 204, 0);
 }
 
 .compact {

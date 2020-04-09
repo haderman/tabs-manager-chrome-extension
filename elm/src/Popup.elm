@@ -478,15 +478,15 @@ view model =
                                         [ Html.text name ]
                                     ]
                                 , div []
-                                    [ span [ class "text-primary" ]
+                                    [ span [ class "text-primary gutter-right-m" ]
                                         [ text <| String.fromInt model.data.numTabsInUse ++ " Tabs" ]
-                                    -- , button
-                                    --     [ class "temp-neo-button-blue padding-xs marginLeft-l rounded background-white hover-opacity color-black fontWeight-400 temp-neo-button"
-                                    --     , onClick DisconnectWorkspace
-                                    --     , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
-                                    --     , onBlur ElementBlurred
-                                    --     ]
-                                    --     [ text "Disconnect" ]
+                                    , button
+                                        [ class "squish-inset-s rounded background-white color-black fontWeight-400"
+                                        , onClick DisconnectWorkspace
+                                        , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
+                                        , onBlur ElementBlurred
+                                        ]
+                                        [ text "Disconnect" ]
                                     ]
                                 ]
 
@@ -604,7 +604,7 @@ viewHeader =
         addShorcutLink =
             a
                 [ href "#"
-                , class "color-highlighted hover-opacity rounded gutter-right-m"
+                , class "text-interactive gutter-right-m"
                 , onClick <| OpenChromePage "chrome://extensions/shortcuts"
                 , tabindex 2
                 , onFocus <| ElementFocused AddShortcutLinkFocused
@@ -622,13 +622,13 @@ viewHeader =
                 , class "hover-opacity circle inline-flex justify-center align-center"
                 ]
                 [ img
-                    [ class "height-xs width-xs hover-opacity"
+                    [ class "height-xs width-xs"
                     , src "/assets/icons/cog.svg"
                     ]
                     []
                 ]
     in
-    header [ class "stretch-inset-m gutter-bottom-s flex align-center justify-space-between" ]
+    header [ class "stretch-inset-m flex align-center justify-space-between" ]
         [ viewLogo
         , span [ class "flex align-center" ]
             [ addShorcutLink
@@ -656,11 +656,19 @@ viewListWorkspaces workspacesIds workspacesInfo =
                 String.fromInt numTabs ++ " Tabs"
 
         viewWorkspace { id, name, color, tabs } =
-            li [ class "gutter-bottom-s" ]
-                [ p [ class "text-primary text-l" ]
-                    [ Html.text name ]
-                , p [ class "text-secondary" ]
-                    [ Html.text <| tabsCountLabel <| List.length tabs ]
+            li [ class "gutter-bottom-s text-m" ]
+                [ button
+                    [ class "text-left"
+                    , tabindex 3
+                    , onClick <| OpenWorkspace id
+                    , onFocus <| ElementFocused WorkspaceCardFocused
+                    , onBlur ElementBlurred
+                    ]
+                    [ p [ class "text-primary text-l" ]
+                        [ Html.text name ]
+                    , p [ class "text-secondary" ]
+                        [ Html.text <| tabsCountLabel <| List.length tabs ]
+                    ]
                 ]
     in
     case workspacesIds of
@@ -892,12 +900,10 @@ viewFooter model =
                 [ "flex"
                 , "justfy-space-between"
                 , "align-center"
-                , "inset-s"
+                , "stretch-inset-m"
                 , "backdrop-filter-blur"
                 , "sticky-bottom"
                 , "background-deep-1"
-                -- , "gradient-blackToTransparent"
-                , "height-s"
                 , "text-primary"
                 ]
 

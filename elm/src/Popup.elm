@@ -472,8 +472,8 @@ view model =
                 viewWorkspace =
                     case Dict.get workspaceId model.data.workspacesInfo of
                         Just { name, color } ->
-                            div [ class <| "flex flex-1 column justify-space-between inset-m " ++ C.toBackgroundCSS color ]
-                                [ div [ class "text-primary text-l gutterBottom-xs" ]
+                            div [ class <| "flex flex-1 column justify-space-between squish-inset-m " ++ C.toBackgroundCSS color ]
+                                [ div [ class "text-primary text-l" ]
                                     [ span []
                                         [ Html.text name ]
                                     ]
@@ -604,17 +604,13 @@ viewHeader =
         addShorcutLink =
             a
                 [ href "#"
-                , class "color-highlighted hover-opacity temp-neo-button rounded"
+                , class "color-highlighted hover-opacity rounded gutter-right-m"
                 , onClick <| OpenChromePage "chrome://extensions/shortcuts"
                 , tabindex 2
                 , onFocus <| ElementFocused AddShortcutLinkFocused
                 , onBlur ElementBlurred
                 ]
                 [ text "Add shortcut" ]
-
-        separator =
-            span [ class "marginLeft-xs marginRight-xs" ]
-                [ text "|"]
 
         settingsLink =
             a
@@ -623,7 +619,7 @@ viewHeader =
                 , tabindex 3
                 , onFocus <| ElementFocused SettingsLinkFocused
                 , onBlur ElementBlurred
-                , class "hover-opacity temp-neo-button circle inline-flex justifyContent-center alignItems-center"
+                , class "hover-opacity circle inline-flex justify-center align-center"
                 ]
                 [ img
                     [ class "height-xs width-xs hover-opacity"
@@ -632,11 +628,10 @@ viewHeader =
                     []
                 ]
     in
-    div [ class "inset-s gutterBottom-s flex align-center justify-space-between" ]
+    header [ class "stretch-inset-m gutter-bottom-s flex align-center justify-space-between" ]
         [ viewLogo
         , span [ class "flex align-center" ]
             [ addShorcutLink
-            , separator
             , settingsLink
             ]
         ]
@@ -658,10 +653,10 @@ viewListWorkspaces workspacesIds workspacesInfo =
             if numTabs == 1 then
                 "1 Tab"
             else
-                (String.fromInt numTabs) ++ " Tabs"
+                String.fromInt numTabs ++ " Tabs"
 
         viewWorkspace { id, name, color, tabs } =
-            li [ class "gutterBottom-s" ]
+            li [ class "gutter-bottom-s" ]
                 [ p [ class "text-primary text-l" ]
                     [ Html.text name ]
                 , p [ class "text-secondary" ]
@@ -713,7 +708,7 @@ viewCards workspacesIds workspacesInfo =
     case workspacesIds of
         [] ->
             div [ class <| "flex padding-xl justifyContent-center alignItems-center paddingTop-xl paddingBottom-xl" ]
-                [ h3 [ class "color-contrast textAlign-center" ]
+                [ h3 [ class "text-primary textAlign-center" ]
                     [ text "You don't have more workspaces created" ]
                 ]
 
@@ -759,7 +754,7 @@ viewCard { id, name, color, tabs } =
 
 viewFormCollapsed : Model -> Html Msg
 viewFormCollapsed model =
-    div [ class formContainerStyle ]
+    Html.form [ class formContainerStyle ]
         [ input
             [ class <| inputStyle ++ " marginBottom-l"
             , type_ "text"
@@ -788,7 +783,7 @@ viewFormCollapsed model =
 
 viewFormExpanded : FormData -> List C.Color -> Html Msg
 viewFormExpanded { name, color } colorList =
-    div [ class formContainerStyle ]
+    Html.form [ class formContainerStyle ]
         [ input
             [ class <| inputStyle ++ " marginBottom-l color-" ++ C.fromColorToString color
             , type_ "text"
@@ -895,14 +890,15 @@ viewFooter model =
         rootStyle =
             String.join " "
                 [ "flex"
-                , "justfyContet-space-between"
-                , "alignItems-center"
-                , "padding-m"
+                , "justfy-space-between"
+                , "align-center"
+                , "inset-s"
                 , "backdrop-filter-blur"
-                , "sticky"
-                , "bottom-0"
+                , "sticky-bottom"
+                , "background-deep-1"
                 -- , "gradient-blackToTransparent"
                 , "height-s"
+                , "text-primary"
                 ]
 
         helpContainerStyle =
@@ -911,7 +907,6 @@ viewFooter model =
                 , "inline-flex"
                 , "justifyContent-flexStart"
                 , "alignItems-center"
-                , "color-contrast"
                 , "full-height"
                 , "rounded"
                 , "letterSpacing-05"
@@ -924,7 +919,7 @@ viewFooter model =
                 , tabindex 1
                 , onFocus <| ElementFocused GitHubLinkeFocused
                 , onBlur ElementBlurred
-                , class "hover-opacity temp-neo-button circle inline-flex justifyContent-center alignItems-center"
+                , class "hover-opacity circle inline-flex justifyContent-center alignItems-center background-deep-2"
                 ]
                 [ img
                     [ class "height-xs width-xs"
@@ -934,7 +929,7 @@ viewFooter model =
                 ]
 
         keyIconContainer =
-            span [ class "temp-neo-keyboard-help" ]
+            span [ class "background-deep-3 squish-inset-xs rounded gutter-right-xs" ]
 
         textHelpContainer =
             span [ class "marginRight-s" ]
@@ -968,7 +963,7 @@ viewFooter model =
                 [ text "Tab" ]
 
         robot =
-            span [ class "fontSize-s" ]
+            span [ class "texr-s" ]
                 [ text "\u{1F47E}" ]
 
         formHelp =

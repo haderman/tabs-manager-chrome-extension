@@ -212,37 +212,7 @@ updateForm : FormMsg -> Model -> ( Model, Cmd Msg )
 updateForm formMsg model =
     case formMsg of
         ChangeName value ->
-            let
-                formStatus =
-                    if String.isEmpty value then
-                        Empty
-                    else
-                        Filled
-
-                newFormData =
-                    model.formData
-                        |> setName value
-                        |> setStatus formStatus
-
-                newFormCardStatus =
-                    case formStatus of
-                        Empty ->
-                            Collapsed
-
-                        _ ->
-                            Expanded
-            in
-            case model.status of
-                NoData ->
-                    ( { model | formData = newFormData }, Cmd.none )
-
-                _ ->
-                    ( { model
-                        | formData = newFormData
-                        , formCardStatus = newFormCardStatus
-                      }
-                    , Cmd.none
-                    )
+            ( { model | formData = setName value model.formData }, Cmd.none )
 
         ChangeColor color ->
             ( { model | formData = setColor color model.formData }, Cmd.none )
@@ -509,11 +479,6 @@ view model =
                 ]
 
         Idle ->
-            let
-                divisor =
-                    div [ class "full-width neo-divisor" ]
-                        []
-            in
             case model.formCardStatus of
                 Collapsed ->
                     let
@@ -526,10 +491,9 @@ view model =
                             [ viewHeader
                             , backdrop
                             ]
-                        , viewFormCollapsed model
-                        , divisor
+                        , viewFormCollapsed model.formData model.data
                         , div [ class "relative" ]
-                            [ viewCards model.data.workspacesIds model.data.workspacesInfo
+                            [ viewListWorkspaces model.data.workspacesIds model.data.workspacesInfo
                             , backdrop
                             ]
                         , viewFooter model
@@ -547,9 +511,8 @@ view model =
                             , backdrop
                             ]
                         , viewFormExpanded model.formData model.colorList
-                        , divisor
                         , div [ class "relative" ]
-                            [ viewCards model.data.workspacesIds model.data.workspacesInfo
+                            [ viewListWorkspaces model.data.workspacesIds model.data.workspacesInfo
                             , backdrop
                             ]
                         , viewFooter model
@@ -628,7 +591,7 @@ viewHeader =
                     []
                 ]
     in
-    header [ class "stretch-inset-m flex align-center justify-space-between" ]
+    header [ class "inset-m flex align-center justify-space-between" ]
         [ viewLogo
         , span [ class "flex align-center" ]
             [ addShorcutLink
@@ -676,7 +639,7 @@ viewListWorkspaces workspacesIds workspacesInfo =
             emptyMessage
 
         _ ->
-            ul [ class "inset-m" ]
+            ul [ class "squish-inset-m" ]
                 (workspacesIds
                     |> List.map getWorkspace
                     |> List.filterMap identity
@@ -760,55 +723,61 @@ viewCard { id, name, color, tabs } =
 -- FORM
 
 
-viewFormCollapsed : Model -> Html Msg
-viewFormCollapsed model =
-    Html.form [ class formContainerStyle ]
-        [ input
-            [ class <| inputStyle ++ " marginBottom-l"
-            , type_ "text"
-            , placeholder "Type a Name"
-            , id "input-workspace-name"
-            , selected True
-            , autofocus True
-            , onBlur ElementBlurred
-            , onFocus <| ElementFocused WorkspaceNameInputFocused
-            , onInput
-                (\value ->
-                    UpdateForm <| ChangeName value
-                )
-            ]
-            []
-        , p [ class "color-contrast marginBottom-m letterSpacing-05" ]
-            [ text "You have "
-            , span [ class "color-highlighted" ]
-                [ text <| String.fromInt model.data.numTabsInUse
-                , text " tabs"
+viewFormCollapsed : FormData -> Data -> Html Msg
+viewFormCollapsed { name } data =
+    Html.form [ class "squish-inset-m" ]
+        [ div [ class "flex justify-space-between gutter-bottom-xs" ]
+            [ input
+                [ class "text-primary text-l squish-inset-xs rounded"
+                , type_ "text"
+                , placeholder "Type a Name"
+                , id <| fromFocusStatusToElementId WorkspaceNameInputFocused
+                , tabindex 0
+                , selected True
+                , autofocus True
+                , Html.Attributes.value name
+                , onBlur ElementBlurred
+                , onFocus <| ElementFocused WorkspaceNameInputFocused
+                , onInput
+                    (\value ->
+                        UpdateForm <| ChangeName value
+                    )
                 ]
-            , text " opened. Type a name to save it."
+                []
+            , button
+                [ class "background-interactive squish-inset-m rounded text-m" ]
+                [ text "Save" ]
             ]
+        , p [ class "text-secondary" ]
+            [ text <| String.fromInt data.numTabsInUse ++ " Tabs" ]
         ]
 
 
 viewFormExpanded : FormData -> List C.Color -> Html Msg
 viewFormExpanded { name, color } colorList =
-    Html.form [ class formContainerStyle ]
-        [ input
-            [ class <| inputStyle ++ " marginBottom-l color-" ++ C.fromColorToString color
-            , type_ "text"
-            , placeholder "Type a Name"
-            , id <| fromFocusStatusToElementId WorkspaceNameInputFocused
-            , tabindex 0
-            , selected True
-            , autofocus True
-            , Html.Attributes.value name
-            , onBlur ElementBlurred
-            , onFocus <| ElementFocused WorkspaceNameInputFocused
-            , onInput
-                (\value ->
-                    UpdateForm <| ChangeName value
-                )
+    Html.form [ class <| "squish-inset-m " ++ C.toBackgroundCSS color ]
+        [ div [ class "flex justify-space-between gutter-bottom-xs" ]
+            [ input
+                [ class "text-primary text-l squish-inset-xs gutter-bottom-xs rounded"
+                , type_ "text"
+                , placeholder "Type a Name"
+                , id <| fromFocusStatusToElementId WorkspaceNameInputFocused
+                , tabindex 0
+                , selected True
+                , autofocus True
+                , Html.Attributes.value name
+                , onBlur ElementBlurred
+                , onFocus <| ElementFocused WorkspaceNameInputFocused
+                , onInput
+                    (\value ->
+                        UpdateForm <| ChangeName value
+                    )
+                ]
+                []
+            , button
+                [ class "background-interactive squish-inset-m rounded text-m" ]
+                [ text "Save" ]
             ]
-            []
         , viewRadioGroupColors color colorList
         ]
 
@@ -900,7 +869,7 @@ viewFooter model =
                 [ "flex"
                 , "justfy-space-between"
                 , "align-center"
-                , "stretch-inset-m"
+                , "inset-m"
                 , "backdrop-filter-blur"
                 , "sticky-bottom"
                 , "background-deep-1"

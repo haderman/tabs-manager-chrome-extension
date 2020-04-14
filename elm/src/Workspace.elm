@@ -9,6 +9,10 @@ type alias WorkspaceId =
     Int
 
 
+type alias WorkspaceName =
+    String
+
+
 type alias Workspace =
     { id : WorkspaceId
     , color : C.Color

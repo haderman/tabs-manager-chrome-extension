@@ -52,6 +52,7 @@ type Key
     | Down
     | Left
     | Right
+    | Backspace
 
 
 type FocusStatus
@@ -79,8 +80,13 @@ type alias FormData =
 
 type FormStatus
     = Empty
-    | Filled
-    | WithErrors
+    | TypingValue W.WorkspaceName
+    | SelectingColor W.WorkspaceName C.Color
+    | TryingToSaveEmptyText
+
+
+type Error
+    = TrySaveWorkspaceWithEmptyText
 
 
 type Status
@@ -106,10 +112,9 @@ type alias Flags =
 type alias Model =
     { data : Data
     , status : Status
-    , formData : FormData
-    , formCardStatus : FormCardStatus
     , focusStatus : FocusStatus
     , colorList : List C.Color
+    , formStatus : FormStatus
     }
 
 
@@ -123,14 +128,9 @@ initModel =
         , numTabsInUse = 0
         }
     , status = NoInitiated
-    , formCardStatus = Collapsed
-    , formData =
-        { name = ""
-        , color = C.default
-        , status = Empty
-        }
     , focusStatus = WithoutFocus
     , colorList = C.list
+    , formStatus = Empty
     }
 
 
@@ -144,7 +144,7 @@ init flags =
 
 
 type FormMsg
-    = ChangeName String
+    = ChangeName W.WorkspaceName
     | ChangeColor C.Color
 
 
@@ -171,11 +171,6 @@ update msg model =
             ( { model
                 | data = data
                 , status = data.status
-                , formCardStatus =
-                    if data.status == NoData then
-                        Expanded
-                    else
-                        Collapsed
               }
             , Cmd.none
             )
@@ -205,36 +200,30 @@ update msg model =
             ( model, Cmd.none )
 
         DisconnectWorkspace ->
-            ( model, Ports.disconnectWorkspace () )
+            ( { model | formStatus = Empty }, Ports.disconnectWorkspace () )
 
 
 updateForm : FormMsg -> Model -> ( Model, Cmd Msg )
 updateForm formMsg model =
     case formMsg of
         ChangeName value ->
-            ( { model | formData = setName value model.formData }, Cmd.none )
+            ( { model
+                | formStatus =
+                    if String.isEmpty value then
+                        Empty
+                    else
+                        TypingValue value
+              }
+              , Cmd.none
+            )
 
         ChangeColor color ->
-            ( { model | formData = setColor color model.formData }, Cmd.none )
+            case model.formStatus of
+                SelectingColor name _ ->
+                    ( { model | formStatus = SelectingColor name color }, Cmd.none )
 
-
-
--- UPDATE FORM HELPERS
-
-
-setName : String -> FormData -> FormData
-setName name_ formData =
-    { formData | name = name_ }
-
-
-setColor : C.Color -> FormData -> FormData
-setColor color_ formData =
-    { formData | color = color_ }
-
-
-setStatus : FormStatus -> FormData -> FormData
-setStatus status_ formData =
-    { formData | status = status_ }
+                _ ->
+                    ( model, Cmd.none )
 
 
 
@@ -262,15 +251,32 @@ handleKeyPressed key model =
         Right ->
             rightPressed model
 
+        Backspace ->
+            backspacePressed model
+
+
+backspacePressed : Model -> ( Model, Cmd Msg )
+backspacePressed model =
+    case model.formStatus of
+        SelectingColor value _ ->
+            ( { model | formStatus = TypingValue value }, focusElement WorkspaceNameInputFocused )
+
+        _ ->
+            ( model, Cmd.none )
+
 
 enterPressed : Model -> ( Model, Cmd Msg )
 enterPressed model =
-    case model.status of
-        NoData ->
-            tryToSaveWorkspace model
+    case model.formStatus of
+        TypingValue value ->
+            ( { model | formStatus = SelectingColor value C.default }, Cmd.none )
 
-        Idle ->
-            tryToSaveWorkspace model
+        SelectingColor name color ->
+            let
+                payload =
+                    ( name, C.fromColorToString color )
+            in
+            ( { model | focusStatus = WithoutFocus }, Ports.createWorkspace payload )
 
         _ ->
             ( model, Cmd.none )
@@ -280,7 +286,7 @@ downPressed : Model -> ( Model, Cmd Msg )
 downPressed model =
     case model.focusStatus of
         WorkspaceNameInputFocused ->
-            ( model, focusElement <| fromFocusStatusToElementId RadioGroupColorsFocused )
+            ( model, focusElement RadioGroupColorsFocused )
 
         _ ->
             ( model, Cmd.none )
@@ -290,7 +296,7 @@ upPressed : Model -> ( Model, Cmd Msg )
 upPressed model =
     case model.focusStatus of
         RadioGroupColorsFocused ->
-            ( model, focusElement <| fromFocusStatusToElementId WorkspaceNameInputFocused )
+            ( model, focusElement WorkspaceNameInputFocused )
 
         _ ->
             ( model, Cmd.none )
@@ -298,12 +304,9 @@ upPressed model =
 
 leftPressed : Model -> ( Model, Cmd Msg )
 leftPressed model =
-    case model.focusStatus of
-        RadioGroupColorsFocused ->
+    case model.formStatus of
+        SelectingColor workspaceName currentColor ->
             let
-                currentColor =
-                    model.formData.color
-
                 toIndex index_ color_ =
                     if color_ == currentColor then
                         index_
@@ -323,7 +326,7 @@ leftPressed model =
                         |> Maybe.withDefault currentColor
 
             in
-            ( { model | formData = setColor color model.formData }, Cmd.none )
+            ( { model | formStatus = SelectingColor workspaceName color }, Cmd.none )
 
         _ ->
             ( model, Cmd.none )
@@ -331,12 +334,9 @@ leftPressed model =
 
 rightPressed : Model -> ( Model, Cmd Msg )
 rightPressed model =
-    case model.focusStatus of
-        RadioGroupColorsFocused ->
+    case model.formStatus of
+        SelectingColor workspaceName  currentColor ->
             let
-                currentColor =
-                    model.formData.color
-
                 toIndex index_ color_ =
                     if color_ == currentColor then
                         index_
@@ -353,26 +353,8 @@ rightPressed model =
                         |> List.drop (getIndex + 1)
                         |> List.head
                         |> Maybe.withDefault currentColor
-
             in
-            ( { model | formData = setColor color model.formData }, Cmd.none )
-
-        _ ->
-            ( model, Cmd.none )
-
-
-tryToSaveWorkspace : Model -> ( Model, Cmd Msg )
-tryToSaveWorkspace model =
-    case model.formData.status of
-        Empty ->
-            ( { model | formData = setStatus WithErrors model.formData }, Cmd.none )
-
-        Filled ->
-            let
-                payload =
-                    ( model.formData.name, C.fromColorToString model.formData.color )
-            in
-            ( { model | focusStatus = WithoutFocus }, Ports.createWorkspace payload )
+            ( { model | formStatus = SelectingColor workspaceName color }, Cmd.none )
 
         _ ->
             ( model, Cmd.none )
@@ -382,8 +364,12 @@ tryToSaveWorkspace model =
 -- TASKS
 
 
-focusElement : String -> Cmd Msg
-focusElement elementId =
+focusElement : FocusStatus -> Cmd Msg
+focusElement newFocusStatus =
+    let
+        elementId =
+            fromFocusStatusToElementId newFocusStatus
+    in
     Task.attempt TryFocusElement (Dom.focus elementId)
 
 
@@ -427,7 +413,7 @@ view model =
                             [ text "Disconnect" ]
                         ]
                     ]
-                , viewCards workspacesIds model.data.workspacesInfo
+                , viewListWorkspaces workspacesIds model.data.workspacesInfo
                 , viewFooter model
                 ]
 
@@ -443,9 +429,9 @@ view model =
                     case Dict.get workspaceId model.data.workspacesInfo of
                         Just { name, color } ->
                             div [ class <| "flex flex-1 column justify-space-between squish-inset-m " ++ C.toBackgroundCSS color ]
-                                [ div [ class "text-primary text-l" ]
+                                [ div [ class "text-primary text-l gutter-bottom-xs" ]
                                     [ span []
-                                        [ Html.text name ]
+                                        [ text name ]
                                     ]
                                 , div []
                                     [ span [ class "text-primary gutter-right-m" ]
@@ -479,44 +465,23 @@ view model =
                 ]
 
         Idle ->
-            case model.formCardStatus of
-                Collapsed ->
-                    let
-                        backdrop =
-                            div [ class "absolute top-0 left-0 full-width full-height background-black opacity-0" ]
-                                []
-                    in
-                    div [ id "root" ]
-                        [ div [ class "relative" ]
-                            [ viewHeader
-                            , backdrop
-                            ]
-                        , viewFormCollapsed model.formData model.data
-                        , div [ class "relative" ]
-                            [ viewListWorkspaces model.data.workspacesIds model.data.workspacesInfo
-                            , backdrop
-                            ]
-                        , viewFooter model
-                        ]
-
-                Expanded ->
-                    let
-                        backdrop =
-                            div [ class "absolute top-0 left-0 full-width full-height backdrop-filter-blur background-black opacity-70" ]
-                                []
-                    in
-                    div [ id "root" ]
-                        [ div [ class "relative" ]
-                            [ viewHeader
-                            , backdrop
-                            ]
-                        , viewFormExpanded model.formData model.colorList
-                        , div [ class "relative" ]
-                            [ viewListWorkspaces model.data.workspacesIds model.data.workspacesInfo
-                            , backdrop
-                            ]
-                        , viewFooter model
-                        ]
+            let
+                backdrop =
+                    div [ class "absolute top-0 left-0 full-width full-height background-black opacity-0" ]
+                        []
+            in
+            div [ id "root" ]
+                [ div [ class "relative" ]
+                    [ viewHeader
+                    , backdrop
+                    ]
+                , viewForm model.formStatus model.data
+                , div [ class "relative" ]
+                    [ viewListWorkspaces model.data.workspacesIds model.data.workspacesInfo
+                    , backdrop
+                    ]
+                , viewFooter model
+                ]
 
         NoData ->
             let
@@ -545,7 +510,7 @@ view model =
                     [ viewLogo ]
                 , div [ class "relative flex flexDirection-col justifyContent-center alignItems-stretch alignText-center" ]
                     [ greet
-                    , viewFormExpanded model.formData model.colorList
+                    , viewForm model.formStatus model.data
                     , viewFooter model
                     ]
                 ]
@@ -648,165 +613,87 @@ viewListWorkspaces workspacesIds workspacesInfo =
 
 
 
-viewCards : List W.WorkspaceId -> Dict W.WorkspaceId W.Workspace -> Html Msg
-viewCards workspacesIds workspacesInfo =
-    let
-        getWorkspace id =
-            Dict.get id workspacesInfo
-
-        viewCardOrEmptyText maybeWorkspace =
-            case maybeWorkspace of
-                Just workspace ->
-                    viewCard workspace
-
-                Nothing ->
-                    text ""
-
-        viewGrid =
-            div [ class <| "grid gridTemplateCol-3 gridGap-xs"]
-                (workspacesIds
-                    |> List.map getWorkspace
-                    |> List.map viewCardOrEmptyText
-                )
-
-        viewList =
-            div [ class <| "grid gridTemplateCol-3 gridGap-xs"]
-                (workspacesIds
-                    |> List.map getWorkspace
-                    |> List.map viewCardOrEmptyText
-                )
-    in
-    case workspacesIds of
-        [] ->
-            div [ class <| "flex padding-xl justifyContent-center alignItems-center paddingTop-xl paddingBottom-xl" ]
-                [ h3 [ class "text-primary textAlign-center" ]
-                    [ text "You don't have more workspaces created" ]
-                ]
-
-        _ ->
-            div [ class "padding-m paddingTop-xl" ]
-                [ viewGrid ]
-
-
-
-viewCard : W.Workspace -> Html Msg
-viewCard { id, name, color, tabs } =
-    let
-        title =
-            p [ class <| "fontSize-m marginBottom-xs ellipsis overflow-hidden whiteSpace-nowrap textAlign-left color-contrast _color-" ++ C.fromColorToString color ]
-                [ text name ]
-
-        tabsCount num =
-            div [ class "textAlign-left color-contrast" ]
-                [ text <| String.fromInt num ++ " Tabs" ]
-
-        style1 =
-            "padding-xs paddingLeft-m paddingRight-m neo-card-style-1 border-s _borderColor-" ++ C.fromColorToString color
-
-        style2 =
-            "rounded padding-xs paddingLeft-m paddingRight-m gradient-" ++ C.fromColorToString color
-    in
-    button
-        [ class style1
-        , autofocus False
-        , tabindex 0
-        , onClick <| OpenWorkspace id
-        , onFocus <| ElementFocused WorkspaceCardFocused
-        , onBlur ElementBlurred
-        ]
-        [ title
-        , tabsCount <| List.length tabs
-        ]
-
-
-
 -- FORM
 
 
-viewFormCollapsed : FormData -> Data -> Html Msg
-viewFormCollapsed { name } data =
-    Html.form [ class "squish-inset-m" ]
-        [ div [ class "flex justify-space-between gutter-bottom-xs" ]
-            [ input
-                [ class "text-primary text-l squish-inset-xs rounded"
+viewForm : FormStatus -> Data -> Html Msg
+viewForm formStatus data =
+    let
+        tabsCount =
+            p [ class "text-secondary" ]
+                [ text <| String.fromInt data.numTabsInUse ++ " Tabs" ]
+
+        inputName currentValue =
+            input
+                [ class "text-primary text-l rounded"
                 , type_ "text"
                 , placeholder "Type a Name"
+                , autocomplete False
                 , id <| fromFocusStatusToElementId WorkspaceNameInputFocused
                 , tabindex 0
                 , selected True
                 , autofocus True
-                , Html.Attributes.value name
+                , Html.Attributes.value currentValue
                 , onBlur ElementBlurred
                 , onFocus <| ElementFocused WorkspaceNameInputFocused
                 , onInput
-                    (\value ->
-                        UpdateForm <| ChangeName value
+                    (\newValue ->
+                        UpdateForm <| ChangeName newValue
                     )
                 ]
                 []
-            , button
-                [ class "background-interactive squish-inset-m rounded text-m" ]
-                [ text "Save" ]
-            ]
-        , p [ class "text-secondary" ]
-            [ text <| String.fromInt data.numTabsInUse ++ " Tabs" ]
-        ]
-
-
-viewFormExpanded : FormData -> List C.Color -> Html Msg
-viewFormExpanded { name, color } colorList =
-    Html.form [ class <| "squish-inset-m " ++ C.toBackgroundCSS color ]
-        [ div [ class "flex justify-space-between gutter-bottom-xs" ]
-            [ input
-                [ class "text-primary text-l squish-inset-xs gutter-bottom-xs rounded"
-                , type_ "text"
-                , placeholder "Type a Name"
-                , id <| fromFocusStatusToElementId WorkspaceNameInputFocused
-                , tabindex 0
-                , selected True
-                , autofocus True
-                , Html.Attributes.value name
-                , onBlur ElementBlurred
-                , onFocus <| ElementFocused WorkspaceNameInputFocused
-                , onInput
-                    (\value ->
-                        UpdateForm <| ChangeName value
-                    )
+    in
+    case formStatus of
+        Empty ->
+            div [ class "squish-inset-m" ]
+                [ div [ class "flex justify-space-between gutter-bottom-xs" ]
+                    [ inputName ""
+                    , button
+                        [ class "background-interactive squish-inset-s rounded text-m"
+                        , disabled True
+                        ]
+                        [ text "Next" ]
+                    ]
+                , tabsCount
                 ]
-                []
-            , button
-                [ class "background-interactive squish-inset-m rounded text-m" ]
-                [ text "Save" ]
-            ]
-        , viewRadioGroupColors color colorList
-        ]
 
+        TypingValue value ->
+            div [ class "squish-inset-m" ]
+                [ div [ class "flex justify-space-between gutter-bottom-xs" ]
+                    [ inputName value
+                    , button
+                        [ class "background-interactive squish-inset-s rounded text-m"
+                        , disabled False
+                        ]
+                        [ text "Next" ]
+                    ]
+                , tabsCount
+                ]
 
-formContainerStyle : String
-formContainerStyle =
-    String.join " "
-        [ "flex"
-        , "flexDirection-col"
-        , "justifyContent-space-between"
-        , "alignItems-center"
-        , "backdrop-filter-blur"
-        , "padding-l"
-        , "height-m"
-        ]
+        SelectingColor value color ->
+            div [ class <| "flex flex-1 column justify-space-between squish-inset-m " ++ C.toBackgroundCSS color ]
+                [ div [ class "text-primary text-l gutter-bottom-xs" ]
+                    [ span []
+                        [ text value ]
+                    ]
+                , div []
+                    [ span [ class "text-primary gutter-right-m" ]
+                        [ text <| String.fromInt data.numTabsInUse ++ " Tabs" ]
+                    ]
+                ]
 
-
-
-inputStyle : String
-inputStyle =
-    String.join " "
-        [ "fontSize-l"
-        , "marginTop-none"
-        , "marginBottom-m"
-        , "fontWeight-200"
-        , "color-contrast"
-        , "padding-xs"
-        , "textAlign-center"
-        ]
+        TryingToSaveEmptyText ->
+            Html.form [ class "squish-inset-m" ]
+                [ div [ class "flex justify-space-between gutter-bottom-xs" ]
+                    [ inputName "value"
+                    , button
+                        [ class "background-interactive squish-inset-m rounded text-m"
+                        , disabled False
+                        ]
+                        [ text "Save" ]
+                    ]
+                , tabsCount
+                ]
 
 
 viewRadioGroupColors : C.Color -> List C.Color -> Html Msg
@@ -941,36 +828,6 @@ viewFooter model =
             span [ class "texr-s" ]
                 [ text "\u{1F47E}" ]
 
-        formHelp =
-            case model.formCardStatus of
-                Collapsed ->
-                    case model.formData.status of
-                        WithErrors ->
-                            textHelpContainer
-                                [ robot
-                                , text "You must to type a name to save the current tabs"
-                                ]
-
-                        _ ->
-                            text ""
-
-                Expanded ->
-                    case model.formData.status of
-                        Empty ->
-                            text ""
-
-                        Filled ->
-                            textHelpContainer
-                                [ enter
-                                , text "Save"
-                                ]
-
-                        WithErrors ->
-                            textHelpContainer
-                                [ robot
-                                , text "You must to type a name to save the current tabs"
-                                ]
-
         navigationHelp =
             case model.focusStatus of
                 WithoutFocus ->
@@ -980,39 +837,10 @@ viewFooter model =
                         ]
 
                 WorkspaceNameInputFocused ->
-                    case model.formCardStatus of
-                        Collapsed ->
-                            case model.status of
-                                WorkspaceInUse _ ->
-                                    case model.data.workspacesIds of
-                                        [] ->
-                                            text ""
-
-                                        [_] ->
-                                            text ""
-
-                                        _ ->
-                                            textHelpContainer
-                                                [ tab
-                                                , text "Move"
-                                                ]
-
-                                _ ->
-                                    case model.data.workspacesIds of
-                                        [] ->
-                                            text ""
-
-                                        _ ->
-                                            textHelpContainer
-                                                [ tab
-                                                , text "Move"
-                                                ]
-
-                        Expanded ->
-                            textHelpContainer
-                                [ arrowDown
-                                , text "Change Field"
-                                ]
+                    textHelpContainer
+                        [ arrowDown
+                        , text "Change Field"
+                        ]
 
                 RadioGroupColorsFocused ->
                     textHelpContainer
@@ -1063,9 +891,7 @@ viewFooter model =
     in
     div [ class rootStyle ]
         [ div [ class helpContainerStyle ]
-            [ formHelp
-            , navigationHelp
-            ]
+            [ navigationHelp ]
         , gitHubLink
         ]
 
@@ -1174,6 +1000,9 @@ toKey str =
 
         "ArrowRight" ->
             Right
+
+        "Backspace" ->
+            Backspace
 
         _ ->
             Other

@@ -56,26 +56,14 @@ type Key
 
 
 type FocusStatus
-    = WithoutFocus
+    = NoneFocus
     | WorkspaceNameInputFocused
     | RadioGroupColorsFocused
-    | WorkspaceCardFocused
+    | WorkspaceItemFocused
     | GitHubLinkeFocused
     | AddShortcutLinkFocused
     | SettingsLinkFocused
     | DisconnectWorkspaceButtonFocused
-
-
-type FormCardStatus
-    = Collapsed
-    | Expanded
-
-
-type alias FormData =
-    { name : String
-    , color : C.Color
-    , status : FormStatus
-    }
 
 
 type FormStatus
@@ -94,7 +82,6 @@ type Status
     | Idle
     | NoData
     | WorkspaceInUse W.WorkspaceId
-    | OpeningWorkspace W.WorkspaceId
 
 
 type alias Data =
@@ -118,7 +105,6 @@ type alias Model =
     }
 
 
-
 initModel : Model
 initModel =
     { data =
@@ -128,7 +114,7 @@ initModel =
         , numTabsInUse = 0
         }
     , status = NoInitiated
-    , focusStatus = WithoutFocus
+    , focusStatus = NoneFocus
     , colorList = C.list
     , formStatus = Empty
     }
@@ -191,7 +177,7 @@ update msg model =
             ( { model | focusStatus = focusStatus }, Cmd.none )
 
         ElementBlurred ->
-            ( { model | focusStatus = WithoutFocus }, Cmd.none )
+            ( { model | focusStatus = NoneFocus }, Cmd.none )
 
         OpenChromePage url ->
             ( model, Ports.openChromePage url )
@@ -212,7 +198,7 @@ updateForm formMsg model =
                     if String.isEmpty value then
                         Empty
                     else
-                        TypingValue value
+                        TypingValue <| String.replace " " "-" value
               }
               , Cmd.none
             )
@@ -268,6 +254,9 @@ backspacePressed model =
 enterPressed : Model -> ( Model, Cmd Msg )
 enterPressed model =
     case model.formStatus of
+        Empty ->
+            ( { model | formStatus = TryingToSaveEmptyText }, Cmd.none )
+
         TypingValue value ->
             ( { model | formStatus = SelectingColor value C.default }, Cmd.none )
 
@@ -276,9 +265,9 @@ enterPressed model =
                 payload =
                     ( name, C.fromColorToString color )
             in
-            ( { model | focusStatus = WithoutFocus }, Ports.createWorkspace payload )
+            ( { model | focusStatus = NoneFocus }, Ports.createWorkspace payload )
 
-        _ ->
+        TryingToSaveEmptyText ->
             ( model, Cmd.none )
 
 
@@ -379,140 +368,41 @@ focusElement newFocusStatus =
 
 view : Model -> Html Msg
 view model =
-    case model.status of
-        OpeningWorkspace workspaceId ->
-            let
-                idInUse id_ =
-                    not (id_ == workspaceId)
+    div [ id "root" ] <|
+        case model.status of
+            WorkspaceInUse workspaceId ->
+                let
+                    idInUse id_ =
+                        not (id_ == workspaceId)
 
-                workspacesIds =
-                    List.filter idInUse model.data.workspacesIds
-
-                workspaceName =
-                    case Dict.get workspaceId model.data.workspacesInfo of
-                        Just { name, color } ->
-                            span [ Html.Attributes.class <| "color-" ++ C.fromColorToString color ]
-                                [ Html.text name ]
-
-                        Nothing ->
-                            Html.text ""
-            in
-            div [ id "root" ]
+                    workspacesIds =
+                        List.filter idInUse model.data.workspacesIds
+                in
                 [ viewHeader
-                , div [ class "flex flexDirection-col alignItems-center height-m justifyContent-space-between padding-m background-black" ]
-                    [ div [ class "color-contrast fontSize-xl marginBottom-m" ]
-                        [ workspaceName ]
-                    , div [ class "color-contrast marginBottom-m" ]
-                        [ text "Openning tabs..."
-                        , button
-                            [ class "padding-xs marginLeft-l rounded background-white hover-opacity color-black fontWeight-400"
-                            , onClick DisconnectWorkspace
-                            , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
-                            , onBlur ElementBlurred
-                            ]
-                            [ text "Disconnect" ]
-                        ]
+                , div [ class "flex sticky-top" ]
+                    [ viewWorkspaceInUse workspaceId model.data
                     ]
                 , viewListWorkspaces workspacesIds model.data.workspacesInfo
                 , viewFooter model
                 ]
 
-        WorkspaceInUse workspaceId ->
-            let
-                idInUse id_ =
-                    not (id_ == workspaceId)
-
-                workspacesIds =
-                    List.filter idInUse model.data.workspacesIds
-
-                viewWorkspace =
-                    case Dict.get workspaceId model.data.workspacesInfo of
-                        Just { name, color } ->
-                            div [ class <| "flex flex-1 column justify-space-between squish-inset-m " ++ C.toBackgroundCSS color ]
-                                [ div [ class "text-primary text-l gutter-bottom-xs" ]
-                                    [ span []
-                                        [ text name ]
-                                    ]
-                                , div []
-                                    [ span [ class "text-primary gutter-right-m" ]
-                                        [ text <| String.fromInt model.data.numTabsInUse ++ " Tabs" ]
-                                    , button
-                                        [ class "squish-inset-s rounded background-white color-black fontWeight-400"
-                                        , onClick DisconnectWorkspace
-                                        , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
-                                        , onBlur ElementBlurred
-                                        ]
-                                        [ text "Disconnect" ]
-                                    ]
-                                ]
-
-                        Nothing ->
-                            Html.text ""
-            in
-            div [ id "root" ]
-                [ viewHeader
-                , div [ class "flex" ]
-                    [ viewWorkspace
-                    ]
-                , viewListWorkspaces workspacesIds model.data.workspacesInfo
-                , viewFooter model
-                ]
-
-        NoInitiated ->
-            div [ class "flex justifyContent-center alignItems-center" ]
+            NoInitiated ->
                 [ h2 [ class "color-contrast" ]
                     [ text "Loading..." ]
                 ]
 
-        Idle ->
-            let
-                backdrop =
-                    div [ class "absolute top-0 left-0 full-width full-height background-black opacity-0" ]
-                        []
-            in
-            div [ id "root" ]
-                [ div [ class "relative" ]
-                    [ viewHeader
-                    , backdrop
-                    ]
+            Idle ->
+                [ viewHeader
                 , viewForm model.formStatus model.data
-                , div [ class "relative" ]
-                    [ viewListWorkspaces model.data.workspacesIds model.data.workspacesInfo
-                    , backdrop
-                    ]
+                , viewListWorkspaces model.data.workspacesIds model.data.workspacesInfo
                 , viewFooter model
                 ]
 
-        NoData ->
-            let
-                wavingHand =
-                    "\u{1F44B}"
-
-                greet =
-                    div [ class "color-contrast fontSize-m textAlign-center padding-l" ]
-                        [ p []
-                            [ text <| wavingHand ++ " You are using "
-                            , span [ class "color-alternate" ]
-                                [ text <| String.fromInt model.data.numTabsInUse ++ " Tabs" ]
-                            ]
-                        , p []
-                            [ text "To save it just type a "
-                            , span [ class "color-alternate" ]
-                                [ text "Name " ]
-                            , text "and press "
-                            , span [ class "color-alternate" ]
-                                [ text "Enter" ]
-                            ]
-                        ]
-            in
-            div [ id "root" ]
-                [ div [ class "padding-m flex alignItems-center justifyContent-center" ]
-                    [ viewLogo ]
-                , div [ class "relative flex flexDirection-col justifyContent-center alignItems-stretch alignText-center" ]
-                    [ greet
-                    , viewForm model.formStatus model.data
-                    , viewFooter model
-                    ]
+            NoData ->
+                [ viewHeader
+                , viewForm model.formStatus model.data
+                , viewInstructions model.formStatus
+                , viewFooter model
                 ]
 
 
@@ -534,7 +424,7 @@ viewHeader =
                 [ href "#"
                 , class "text-interactive gutter-right-m"
                 , onClick <| OpenChromePage "chrome://extensions/shortcuts"
-                , tabindex 2
+                , tabindex 1
                 , onFocus <| ElementFocused AddShortcutLinkFocused
                 , onBlur ElementBlurred
                 ]
@@ -544,7 +434,7 @@ viewHeader =
             a
                 [ target "_blank"
                 , href "/newtab/newtab.html"
-                , tabindex 3
+                , tabindex 1
                 , onFocus <| ElementFocused SettingsLinkFocused
                 , onBlur ElementBlurred
                 , class "hover-opacity circle inline-flex justify-center align-center"
@@ -563,6 +453,33 @@ viewHeader =
             , settingsLink
             ]
         ]
+
+
+viewWorkspaceInUse : W.WorkspaceId -> Data -> Html Msg
+viewWorkspaceInUse workspaceId data =
+    case Dict.get workspaceId data.workspacesInfo of
+        Just { name, color } ->
+            div [ class <| "flex flex-1 column justify-space-between squish-inset-m " ++ C.toBackgroundCSS color ]
+                [ div [ class "text-primary text-l gutter-bottom-xs" ]
+                    [ span []
+                        [ text name ]
+                    ]
+                , div []
+                    [ span [ class "text-primary gutter-right-m" ]
+                        [ text <| String.fromInt data.numTabsInUse ++ " Tabs" ]
+                    , button
+                        [ class "squish-inset-s rounded background-white color-black fontWeight-400"
+                        , onClick DisconnectWorkspace
+                        , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
+                        , onBlur ElementBlurred
+                        ]
+                        [ text "Disconnect" ]
+                    ]
+                ]
+
+        Nothing ->
+            Html.text ""
+
 
 
 viewListWorkspaces : List W.WorkspaceId -> Dict W.WorkspaceId W.Workspace -> Html Msg
@@ -584,12 +501,14 @@ viewListWorkspaces workspacesIds workspacesInfo =
                 String.fromInt numTabs ++ " Tabs"
 
         viewWorkspace { id, name, color, tabs } =
-            li [ class "gutter-bottom-s text-m" ]
-                [ button
-                    [ class "text-left"
-                    , tabindex 3
+            li [ class "text-m flex align-center" ]
+                [ span [ class <| "circle-m gutter-right-s " ++ C.toBackgroundCSS color ]
+                    []
+                , button
+                    [ class "text-left squish-inset-s flex-1 rounded"
+                    , tabindex 1
                     , onClick <| OpenWorkspace id
-                    , onFocus <| ElementFocused WorkspaceCardFocused
+                    , onFocus <| ElementFocused WorkspaceItemFocused
                     , onBlur ElementBlurred
                     ]
                     [ p [ class "text-primary text-l" ]
@@ -623,14 +542,14 @@ viewForm formStatus data =
             p [ class "text-secondary" ]
                 [ text <| String.fromInt data.numTabsInUse ++ " Tabs" ]
 
-        inputName currentValue =
+        input_ currentValue =
             input
-                [ class "text-primary text-l rounded"
+                [ class "text-primary text-l rounded gutter-bottom-xs full-width"
                 , type_ "text"
                 , placeholder "Type a Name"
                 , autocomplete False
                 , id <| fromFocusStatusToElementId WorkspaceNameInputFocused
-                , tabindex 0
+                , tabindex 1
                 , selected True
                 , autofocus True
                 , Html.Attributes.value currentValue
@@ -641,37 +560,25 @@ viewForm formStatus data =
                         UpdateForm <| ChangeName newValue
                     )
                 ]
-                []
+                [ span []
+                    [ text "" ]
+                ]
     in
     case formStatus of
         Empty ->
             div [ class "squish-inset-m" ]
-                [ div [ class "flex justify-space-between gutter-bottom-xs" ]
-                    [ inputName ""
-                    , button
-                        [ class "background-interactive squish-inset-s rounded text-m"
-                        , disabled True
-                        ]
-                        [ text "Next" ]
-                    ]
+                [ input_ ""
                 , tabsCount
                 ]
 
         TypingValue value ->
             div [ class "squish-inset-m" ]
-                [ div [ class "flex justify-space-between gutter-bottom-xs" ]
-                    [ inputName value
-                    , button
-                        [ class "background-interactive squish-inset-s rounded text-m"
-                        , disabled False
-                        ]
-                        [ text "Next" ]
-                    ]
+                [ input_ value
                 , tabsCount
                 ]
 
         SelectingColor value color ->
-            div [ class <| "flex flex-1 column justify-space-between squish-inset-m " ++ C.toBackgroundCSS color ]
+            div [ class <| "flex column justify-space-between squish-inset-m " ++ C.toBackgroundCSS color ]
                 [ div [ class "text-primary text-l gutter-bottom-xs" ]
                     [ span []
                         [ text value ]
@@ -683,54 +590,45 @@ viewForm formStatus data =
                 ]
 
         TryingToSaveEmptyText ->
-            Html.form [ class "squish-inset-m" ]
-                [ div [ class "flex justify-space-between gutter-bottom-xs" ]
-                    [ inputName "value"
-                    , button
-                        [ class "background-interactive squish-inset-m rounded text-m"
-                        , disabled False
-                        ]
-                        [ text "Save" ]
+            div [ class "squish-inset-m" ]
+                [ input_ ""
+                , div [ class "flex justify-space-between" ]
+                    [ tabsCount
+                    , span [ class "text-highlight" ]
+                        [ text "Type a label e.g 'news' or 'social'" ]
                     ]
-                , tabsCount
                 ]
 
 
-viewRadioGroupColors : C.Color -> List C.Color -> Html Msg
-viewRadioGroupColors color colorList =
+viewInstructions : FormStatus -> Html Msg
+viewInstructions formStatus =
     let
-        radio color_ =
-            let
-                isChecked =
-                    color_ == color
+        bubbleTop txt =
+            p [ class "speech-bubble-top background-deep-3 border-deep-3 inset-s" ]
+                [ text txt ]
 
-                stringColor =
-                    C.fromColorToString color_
-
-                handleOnInput value =
-                    UpdateForm <| ChangeColor <| C.fromStringToColor value
-            in
-            label [ Html.Attributes.class "radioLabel" ]
-                [ input
-                    [ Html.Attributes.type_ "radio"
-                    , Html.Attributes.name stringColor
-                    , Html.Attributes.class "absolute width-0 height-0"
-                    , checked isChecked
-                    , Html.Attributes.value stringColor
-                    , onInput handleOnInput
-                    ]
-                    []
-                , span [ Html.Attributes.class <| "checkmark background-" ++ stringColor ] []
-                ]
+        bubbleBottom txt =
+            p [ class "speech-bubble-bottom background-deep-3 border-deep-3 inset-s" ]
+                [ text txt ]
     in
-    div
-        [ class "flex opacity-70 padding-m height-xs"
-        , id <| fromFocusStatusToElementId RadioGroupColorsFocused
-        , tabindex 0
-        , onBlur ElementBlurred
-        , onFocus <| ElementFocused RadioGroupColorsFocused
-        ]
-        <| List.map radio colorList
+    div [ class "squish-inset-m text-primary flex-1 flex column justify-space-between" ] <|
+        case formStatus of
+            Empty ->
+                [ bubbleTop "Empty" ]
+
+            TypingValue value  ->
+                [ bubbleTop "TypingValue"
+                , if not ( String.isEmpty value ) then
+                    bubbleBottom "Abajo"
+                  else
+                    text ""
+                ]
+
+            SelectingColor _ _ ->
+                [ bubbleTop "SelectingColor" ]
+
+            TryingToSaveEmptyText ->
+                [ bubbleTop "TryingToSaveEmptyText" ]
 
 
 customOnClick : Msg -> Html.Attribute Msg
@@ -745,155 +643,133 @@ customOnClick msg =
         )
 
 
+
 -- VIEW FOOTER
 
 
 viewFooter : Model -> Html Msg
 viewFooter model =
+    footer [ class "flex justfy-space-between align-center inset-m sticky-bottom background-deep-1 text-primary" ]
+        [ viewHelp model.status model.formStatus model.focusStatus
+        , viewAction
+        ]
+
+
+viewAction : Html Msg
+viewAction =
+    a
+        [ target "_blank"
+        , href "https://github.com/haderman/tabs-manager-chrome-extension"
+        , tabindex 1
+        , onFocus <| ElementFocused GitHubLinkeFocused
+        , onBlur ElementBlurred
+        , class "hover-opacity circle inline-flex justifyContent-center alignItems-center background-deep-2"
+        ]
+        [ img
+            [ class "height-xs width-xs"
+            , src "/assets/icons/github-light-32px.png"
+            ]
+            []
+        ]
+
+
+viewHelp : Status -> FormStatus -> FocusStatus -> Html Msg
+viewHelp status formStatus focusStatus =
     let
-        rootStyle =
-            String.join " "
-                [ "flex"
-                , "justfy-space-between"
-                , "align-center"
-                , "inset-m"
-                , "backdrop-filter-blur"
-                , "sticky-bottom"
-                , "background-deep-1"
-                , "text-primary"
-                ]
+        formHelp =
+            viewFormHelp formStatus
 
-        helpContainerStyle =
-            String.join " "
-                [ "full-width"
-                , "inline-flex"
-                , "justifyContent-flexStart"
-                , "alignItems-center"
-                , "full-height"
-                , "rounded"
-                , "letterSpacing-05"
-                ]
+        focusHelp =
+            viewFocusHelp focusStatus
+                |> Maybe.withDefault []
+    in
+    div [ class "flex-1" ] <|
+        case formHelp of
+            Just help ->
+                help
 
-        gitHubLink =
-            a
-                [ target "_blank"
-                , href "https://github.com/haderman/tabs-manager-chrome-extension"
-                , tabindex 1
-                , onFocus <| ElementFocused GitHubLinkeFocused
-                , onBlur ElementBlurred
-                , class "hover-opacity circle inline-flex justifyContent-center alignItems-center background-deep-2"
-                ]
-                [ img
-                    [ class "height-xs width-xs"
-                    , src "/assets/icons/github-light-32px.png"
-                    ]
-                    []
-                ]
+            Nothing ->
+                navigationHelp status :: focusHelp
 
-        keyIconContainer =
-            span [ class "background-deep-3 squish-inset-xs rounded gutter-right-xs" ]
 
-        textHelpContainer =
-            span [ class "marginRight-s" ]
+navigationHelp : Status -> Html Msg
+navigationHelp status =
+    let
+        tab =
+            keyBox [ text "Tab" ]
+    in
+    if status == NoData then
+        text ""
+    else
+        helpInfo [ tab ] "Navigate"
+
+
+viewFormHelp : FormStatus -> Maybe ( List ( Html Msg ) )
+viewFormHelp formStatus =
+    let
+        enter =
+            keyBox [ text "Enter" ]
+
+        backSpace =
+            keyBox [ text "\u{232B}" ]
 
         arrowLeft =
-            keyIconContainer
-                [ text "\u{2190}" ]
+            keyBox [ text "\u{2190}" ]
 
         arrowRight =
-            keyIconContainer
-                [ text "\u{2192}" ]
-
-        arrowDown =
-            keyIconContainer
-                [ text "\u{2193}" ]
-
-        arrowUp =
-            keyIconContainer
-                [ text "\u{2191}" ]
-
-        enter =
-            keyIconContainer
-                [ text "Enter" ]
-
-        space =
-            keyIconContainer
-                [ text "Space" ]
-
-        tab =
-            keyIconContainer
-                [ text "Tab" ]
-
-        robot =
-            span [ class "texr-s" ]
-                [ text "\u{1F47E}" ]
-
-        navigationHelp =
-            case model.focusStatus of
-                WithoutFocus ->
-                    textHelpContainer
-                        [ tab
-                        , text "Move"
-                        ]
-
-                WorkspaceNameInputFocused ->
-                    textHelpContainer
-                        [ arrowDown
-                        , text "Change Field"
-                        ]
-
-                RadioGroupColorsFocused ->
-                    textHelpContainer
-                        [ textHelpContainer
-                            [ arrowUp
-                            , text "Change Field"
-                            ]
-                        , textHelpContainer
-                            [ arrowLeft
-                            , arrowRight
-                            , text "Change Color"
-                            ]
-                        ]
-
-                WorkspaceCardFocused ->
-                    textHelpContainer
-                        [ space
-                        , text " or "
-                        , enter
-                        , text "Open"
-                        ]
-
-                GitHubLinkeFocused ->
-                    textHelpContainer
-                        [ enter
-                        , text "Open Github Project"
-                        ]
-
-                AddShortcutLinkFocused ->
-                    textHelpContainer
-                        [ enter
-                        , text "Add Shortcut Keyboard"
-                        ]
-
-                SettingsLinkFocused ->
-                    textHelpContainer
-                        [ enter
-                        , text "Advanced View"
-                        ]
-
-                DisconnectWorkspaceButtonFocused ->
-                    textHelpContainer
-                        [ enter
-                        , text "Disconnect Workspace"
-                        ]
-
-
+            keyBox [ text "\u{2192}" ]
     in
-    div [ class rootStyle ]
-        [ div [ class helpContainerStyle ]
-            [ navigationHelp ]
-        , gitHubLink
-        ]
+    case formStatus of
+        TypingValue _ ->
+            Just
+                [ helpInfo [ enter ] "Next" ]
+
+        SelectingColor _ _ ->
+            Just
+                [ helpInfo [ enter ] "Save"
+                , helpInfo [ arrowLeft, arrowRight ] "Color"
+                , helpInfo [ backSpace ] "Undo"
+                ]
+
+        _ ->
+            Nothing
+
+
+viewFocusHelp : FocusStatus -> Maybe ( List ( Html Msg ) )
+viewFocusHelp focusStatus =
+    let
+        enter =
+            keyBox [ text "Enter" ]
+    in
+    case focusStatus of
+        WorkspaceItemFocused ->
+            Just [ helpInfo [ enter ] "Open tabs" ]
+
+        GitHubLinkeFocused ->
+            Just [ helpInfo [ enter ] "Source code" ]
+
+        AddShortcutLinkFocused ->
+            Just [ helpInfo [ enter ] "Shortcuts page" ]
+
+        SettingsLinkFocused ->
+            Just [ helpInfo [ enter ] "Advanced view page" ]
+
+        DisconnectWorkspaceButtonFocused ->
+            Just [ helpInfo [ enter ] "Disconect current workspace" ]
+
+        _ ->
+            Nothing
+
+
+helpInfo : List ( Html Msg ) -> String -> Html Msg
+helpInfo keys txt =
+    span [ class "gutter-right-m" ] <|
+        List.concat [ keys, [ text txt] ]
+
+
+keyBox : List ( Html Msg ) -> Html Msg
+keyBox =
+    kbd [ class "background-deep-2 border-s border-deep-3 squish-inset-xs rounded gutter-right-xs anim-pulsar-border" ]
 
 
 
@@ -955,10 +831,6 @@ stateDecoder =
                         Decode.map WorkspaceInUse <|
                             Decode.field "workspaceInUse" Decode.int
 
-                    "openingWorkspace" ->
-                        Decode.map OpeningWorkspace <|
-                            Decode.field "workspaceInUse" Decode.int
-
                     "noData" ->
                         Decode.succeed NoData
 
@@ -1015,7 +887,7 @@ toKey str =
 fromFocusStatusToElementId : FocusStatus -> String
 fromFocusStatusToElementId focusStatus =
     case focusStatus of
-        WithoutFocus ->
+        NoneFocus ->
             ""
 
         WorkspaceNameInputFocused ->
@@ -1024,7 +896,7 @@ fromFocusStatusToElementId focusStatus =
         RadioGroupColorsFocused ->
             "radio-group-colors"
 
-        WorkspaceCardFocused ->
+        WorkspaceItemFocused ->
             ""
 
         GitHubLinkeFocused ->

@@ -23,10 +23,10 @@ function onLoad() {
           app.ports.receivedDataFromJS.send({
             data: {
               ...payload,
-              workspaces: [],
-              status: {
-                state: 'noData'
-              }
+              // workspaces: [],
+              // status: {
+              //   state: 'noData'
+              // }
             }
           });
           return;
@@ -38,10 +38,10 @@ function onLoad() {
       chrome.extension.sendMessage({ type: 'use_workspace', payload: workspaceId, window });
     });
 
-    // app.ports.createWorkspace.subscribe(([name, color]) => {
-    //   const payload = { name, color }
-    //   chrome.extension.sendMessage({ type: 'create_workspace', payload, window });
-    // });
+    app.ports.createWorkspace.subscribe(([name, color]) => {
+      const payload = { name, color }
+      chrome.extension.sendMessage({ type: 'create_workspace', payload, window });
+    });
 
     app.ports.openChromePage.subscribe(url => {
       chrome.extension.sendMessage({ type: 'open_chrome_page', payload: url, window });

@@ -422,7 +422,7 @@ viewHeader =
         addShorcutLink =
             a
                 [ href "#"
-                , class "text-interactive gutter-right-m"
+                , class "text-interactive gutter-right-m focus-border"
                 , onClick <| OpenChromePage "chrome://extensions/shortcuts"
                 , tabindex 1
                 , onFocus <| ElementFocused AddShortcutLinkFocused
@@ -437,7 +437,7 @@ viewHeader =
                 , tabindex 1
                 , onFocus <| ElementFocused SettingsLinkFocused
                 , onBlur ElementBlurred
-                , class "hover-opacity circle inline-flex justify-center align-center"
+                , class "circle inline-flex justify-center align-center focus-border"
                 ]
                 [ img
                     [ class "height-xs width-xs"
@@ -457,24 +457,39 @@ viewHeader =
 
 viewWorkspaceInUse : W.WorkspaceId -> Data -> Html Msg
 viewWorkspaceInUse workspaceId data =
+    let
+        viewNumTabs =
+            p [ class "text-primary gutter-right-m" ]
+                [ text <| String.fromInt data.numTabsInUse ++ " Tabs" ]
+
+        viewName name =
+            p [ class "text-primary text-l gutter-bottom-xs" ]
+                [ text name ]
+
+        viewButton =
+            button
+                [ onClick DisconnectWorkspace
+                , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
+                , onBlur ElementBlurred
+                , class "circle focus-border"
+                , tabindex 1
+                ]
+                [ img
+                    [ class "height-xs width-xs"
+                    , src "/assets/icons/eject.svg"
+                    ]
+                    []
+                ]
+    in
     case Dict.get workspaceId data.workspacesInfo of
         Just { name, color } ->
-            div [ class <| "flex flex-1 column justify-space-between squish-inset-m " ++ C.toBackgroundCSS color ]
-                [ div [ class "text-primary text-l gutter-bottom-xs" ]
-                    [ span []
-                        [ text name ]
+            div [ class <| "flex flex-1 justify-space-between squish-inset-m " ++ C.toBackgroundCSS color ]
+                [ div [ class <| "flex flex-1 column justify-space-between" ]
+                    [ viewName name
+                    , viewNumTabs
                     ]
-                , div []
-                    [ span [ class "text-primary gutter-right-m" ]
-                        [ text <| String.fromInt data.numTabsInUse ++ " Tabs" ]
-                    , button
-                        [ class "squish-inset-s rounded background-white color-black fontWeight-400"
-                        , onClick DisconnectWorkspace
-                        , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
-                        , onBlur ElementBlurred
-                        ]
-                        [ text "Disconnect" ]
-                    ]
+                , div [ class "flex align-center justify-center"]
+                    [ viewButton ]
                 ]
 
         Nothing ->
@@ -485,12 +500,6 @@ viewWorkspaceInUse workspaceId data =
 viewListWorkspaces : List W.WorkspaceId -> Dict W.WorkspaceId W.Workspace -> Html Msg
 viewListWorkspaces workspacesIds workspacesInfo =
     let
-        emptyMessage =
-            div [ class <| "flex padding-xl justifyContent-center alignItems-center paddingTop-xl paddingBottom-xl" ]
-                [ h3 [ class "color-contrast textAlign-center" ]
-                    [ text "You don't have more workspaces created" ]
-                ]
-
         getWorkspace id =
             Dict.get id workspacesInfo
 
@@ -505,7 +514,7 @@ viewListWorkspaces workspacesIds workspacesInfo =
                 [ span [ class <| "circle-m gutter-right-s " ++ C.toBackgroundCSS color ]
                     []
                 , button
-                    [ class "text-left squish-inset-s flex-1 rounded"
+                    [ class "text-left squish-inset-s flex-1 rounded focus-background"
                     , tabindex 1
                     , onClick <| OpenWorkspace id
                     , onFocus <| ElementFocused WorkspaceItemFocused
@@ -520,15 +529,23 @@ viewListWorkspaces workspacesIds workspacesInfo =
     in
     case workspacesIds of
         [] ->
-            emptyMessage
+            viewListWokspaceEmptyState
 
         _ ->
-            ul [ class "squish-inset-m" ]
+            ul [ class "squish-inset-m flex-1" ]
                 (workspacesIds
                     |> List.map getWorkspace
                     |> List.filterMap identity
                     |> List.map viewWorkspace
                 )
+
+
+viewListWokspaceEmptyState : Html Msg
+viewListWokspaceEmptyState =
+    div [ class <| "flex flex-1 padding-xl justifyContent-center alignItems-center paddingTop-xl paddingBottom-xl" ]
+        [ h3 [ class "color-contrast textAlign-center" ]
+            [ text "You don't have more workspaces created" ]
+        ]
 
 
 
@@ -603,32 +620,53 @@ viewForm formStatus data =
 viewInstructions : FormStatus -> Html Msg
 viewInstructions formStatus =
     let
-        bubbleTop txt =
-            p [ class "speech-bubble-top background-deep-3 border-deep-3 inset-s" ]
-                [ text txt ]
+        bubbleTop =
+            p [ class "speech-bubble-top background-deep-3 border-deep-3 inset-s letter-spacing anim-fade-in" ]
 
-        bubbleBottom txt =
-            p [ class "speech-bubble-bottom background-deep-3 border-deep-3 inset-s" ]
-                [ text txt ]
+        bubbleBottom =
+            p [ class "speech-bubble-bottom background-deep-3 border-deep-3 inset-s letter-spacing anim-fade-in" ]
+
+        nameSamples =
+            [ span [ class "squish-inset-xs gutter-right-xs rounded background-a" ]
+                [ text "news" ]
+            , span [ class "squish-inset-xs gutter-right-xs rounded background-b" ]
+                [ text "social" ]
+            , span [ class "squish-inset-xs gutter-right-xs rounded background-c" ]
+                [ text "project-a" ]
+            , span [ class "squish-inset-xs gutter-right-xs rounded background-d" ]
+                [ text "task-b" ]
+            ]
+
+        inputNameHelp =
+            bubbleTop <|
+                p [ class "gutter-bottom-s" ]
+                    [ text "How would you like to save the opened tabs? Samples: " ]
+                    :: nameSamples
+
+        footerHelp value =
+            if not <| String.isEmpty value then
+                bubbleBottom
+                    [ text "Here you can see how you can interact with the keyboard" ]
+            else
+                text ""
     in
     div [ class "squish-inset-m text-primary flex-1 flex column justify-space-between" ] <|
         case formStatus of
             Empty ->
-                [ bubbleTop "Empty" ]
+                [ inputNameHelp ]
 
-            TypingValue value  ->
-                [ bubbleTop "TypingValue"
-                , if not ( String.isEmpty value ) then
-                    bubbleBottom "Abajo"
-                  else
-                    text ""
+            TypingValue value ->
+                [ inputNameHelp
+                , footerHelp value
                 ]
 
             SelectingColor _ _ ->
-                [ bubbleTop "SelectingColor" ]
+                [ bubbleTop
+                    [ text "You are almost done! Just use the arrows to change the color and press the Enter key to save!" ]
+                ]
 
             TryingToSaveEmptyText ->
-                [ bubbleTop "TryingToSaveEmptyText" ]
+                [ inputNameHelp ]
 
 
 customOnClick : Msg -> Html.Attribute Msg
@@ -663,7 +701,7 @@ viewAction =
         , tabindex 1
         , onFocus <| ElementFocused GitHubLinkeFocused
         , onBlur ElementBlurred
-        , class "hover-opacity circle inline-flex justifyContent-center alignItems-center background-deep-2"
+        , class "hover-opacity circle inline-flex justifyContent-center alignItems-center background-deep-2 focus-border"
         ]
         [ img
             [ class "height-xs width-xs"
@@ -755,7 +793,7 @@ viewFocusHelp focusStatus =
             Just [ helpInfo [ enter ] "Advanced view page" ]
 
         DisconnectWorkspaceButtonFocused ->
-            Just [ helpInfo [ enter ] "Disconect current workspace" ]
+            Just [ helpInfo [ enter ] "Unmount workspace" ]
 
         _ ->
             Nothing

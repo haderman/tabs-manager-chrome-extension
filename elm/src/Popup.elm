@@ -368,7 +368,9 @@ focusElement newFocusStatus =
 
 view : Model -> Html Msg
 view model =
-    div [ id "root" ] <|
+    div [ id "root"
+        , class ""
+        ] <|
         case model.status of
             WorkspaceInUse workspaceId ->
                 let
@@ -422,7 +424,7 @@ viewHeader =
         addShorcutLink =
             a
                 [ href "#"
-                , class "text-interactive gutter-right-m focus-border"
+                , class "text-interactive gutter-right-m focus-border rounded"
                 , onClick <| OpenChromePage "chrome://extensions/shortcuts"
                 , tabindex 1
                 , onFocus <| ElementFocused AddShortcutLinkFocused
@@ -440,7 +442,7 @@ viewHeader =
                 , class "circle inline-flex justify-center align-center focus-border"
                 ]
                 [ img
-                    [ class "height-xs width-xs"
+                    [ class "height-s width-s dynamic"
                     , src "/assets/icons/cog.svg"
                     ]
                     []
@@ -459,11 +461,11 @@ viewWorkspaceInUse : W.WorkspaceId -> Data -> Html Msg
 viewWorkspaceInUse workspaceId data =
     let
         viewNumTabs =
-            p [ class "text-primary gutter-right-m" ]
+            p [ class "text-secondary-high-contrast gutter-right-m" ]
                 [ text <| String.fromInt data.numTabsInUse ++ " Tabs" ]
 
         viewName name =
-            p [ class "text-primary text-l gutter-bottom-xs" ]
+            p [ class "text-primary-high-contrast text-l" ]
                 [ text name ]
 
         viewButton =
@@ -471,12 +473,12 @@ viewWorkspaceInUse workspaceId data =
                 [ onClick DisconnectWorkspace
                 , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
                 , onBlur ElementBlurred
-                , class "circle focus-border"
+                , class "circle focus-border height-s width-s contrast"
                 , tabindex 1
                 ]
                 [ img
-                    [ class "height-xs width-xs"
-                    , src "/assets/icons/eject.svg"
+                    [ class "height-s width-s"
+                    , src "/assets/icons/close.svg"
                     ]
                     []
                 ]
@@ -484,7 +486,9 @@ viewWorkspaceInUse workspaceId data =
     case Dict.get workspaceId data.workspacesInfo of
         Just { name, color } ->
             div [ class <| "flex flex-1 justify-space-between squish-inset-m " ++ C.toBackgroundCSS color ]
-                [ div [ class <| "flex flex-1 column justify-space-between" ]
+                [ span [ class "circle-m gutter-right-s transparent" ]
+                    []
+                , div [ class "flex flex-1 column justify-space-between squish-inset-s" ]
                     [ viewName name
                     , viewNumTabs
                     ]
@@ -542,7 +546,7 @@ viewListWorkspaces workspacesIds workspacesInfo =
 
 viewListWokspaceEmptyState : Html Msg
 viewListWokspaceEmptyState =
-    div [ class <| "flex flex-1 padding-xl justifyContent-center alignItems-center paddingTop-xl paddingBottom-xl" ]
+    div [ class <| "flex flex-1 justify-center align-center text-primary" ]
         [ h3 [ class "color-contrast textAlign-center" ]
             [ text "You don't have more workspaces created" ]
         ]
@@ -561,7 +565,7 @@ viewForm formStatus data =
 
         input_ currentValue =
             input
-                [ class "text-primary text-l rounded gutter-bottom-xs full-width"
+                [ class "text-primary text-l rounded full-width"
                 , type_ "text"
                 , placeholder "Type a Name"
                 , autocomplete False
@@ -580,39 +584,102 @@ viewForm formStatus data =
                 [ span []
                     [ text "" ]
                 ]
+
+        helpContainer visible =
+            div [ class <|
+                    String.join " "
+                        [ "flex"
+                        , "justify-space-around"
+                        , "full-width"
+                        , "squish-inset-m"
+                        , "z-index-1"
+                        , "background-deep-3"
+                        , "slide-from-top"
+                        , if visible == True then
+                            "slide-from-top-show"
+                          else
+                            ""
+                        ]
+                ]
+
+        selectingColorHelp =
+            [ span [ class "inline-flex align-center text-primary" ]
+                [ button
+                    [ type_ "button"
+                    , onClick <| KeyPressed Backspace
+                    ]
+                    [ backspaceKey ]
+                , text "Cancel"
+                ]
+            , span [ class "inline-flex align-center text-primary" ]
+                [ button
+                    [ type_ "button"
+                    , onClick <| KeyPressed Left
+                    ]
+                    [ arrowLeftKey ]
+                , button
+                    [ type_ "button"
+                    , onClick <| KeyPressed Right
+                    ]
+                    [ arrowRightKey ]
+                , text "Change Color"
+                ]
+            , span [ class "inline-flex align-center text-primary" ]
+                [ button
+                    [ type_ "button"
+                    , onClick <| KeyPressed Enter
+                    ]
+                    [ enterKey ]
+                , text "Save"
+                ]
+            ]
     in
-    case formStatus of
-        Empty ->
-            div [ class "squish-inset-m" ]
-                [ input_ ""
-                , tabsCount
-                ]
-
-        TypingValue value ->
-            div [ class "squish-inset-m" ]
-                [ input_ value
-                , tabsCount
-                ]
-
-        SelectingColor value color ->
-            div [ class <| "flex column justify-space-between squish-inset-m " ++ C.toBackgroundCSS color ]
-                [ div [ class "text-primary text-l gutter-bottom-xs" ]
-                    [ span []
-                        [ text value ]
+    Html.form
+        [ class "relative text-primary background-inherit"
+        , onSubmit NoOp
+        ] <|
+        case formStatus of
+            Empty ->
+                [ div [ class "relative squish-inset-m z-index-2 background-inherit" ]
+                    [ input_ ""
+                    , tabsCount
                     ]
-                , div []
-                    [ span [ class "text-primary gutter-right-m" ]
-                        [ text <| String.fromInt data.numTabsInUse ++ " Tabs" ]
-                    ]
+                , helpContainer False
+                    selectingColorHelp
                 ]
 
-        TryingToSaveEmptyText ->
-            div [ class "squish-inset-m" ]
-                [ input_ ""
-                , div [ class "flex justify-space-between" ]
-                    [ tabsCount
-                    , span [ class "text-highlight" ]
-                        [ text "Type a label e.g 'news' or 'social'" ]
+            TypingValue value ->
+                [ div [ class "relative squish-inset-m background-transition z-index-2 background-inherit" ]
+                    [ input_ value
+                    , tabsCount
+                    ]
+                , helpContainer False
+                    selectingColorHelp
+                ]
+
+            SelectingColor workspaceName color ->
+                [ div [ class <| "relative flex column squish-inset-m z-index-2 background-transition " ++ C.toBackgroundCSS color ]
+                    [ div [ class "text-primary-high-contrast text-l" ]
+                        [ span []
+                            [ text workspaceName ]
+                        ]
+                    , div []
+                        [ span [ class "text-secondary-high-contrast gutter-right-m" ]
+                            [ text <| String.fromInt data.numTabsInUse ++ " Tabs" ]
+                        ]
+                    ]
+                , helpContainer True
+                    selectingColorHelp
+                ]
+
+            TryingToSaveEmptyText ->
+                [ div [ class "relative squish-inset-m z-index-2" ]
+                    [ input_ ""
+                    , div [ class "flex justify-space-between" ]
+                        [ tabsCount
+                        , span [ class "text-highlight" ]
+                            [ text "Type a label e.g 'news' or 'social'" ]
+                        ]
                     ]
                 ]
 
@@ -621,10 +688,10 @@ viewInstructions : FormStatus -> Html Msg
 viewInstructions formStatus =
     let
         bubbleTop =
-            p [ class "speech-bubble-top background-deep-3 border-deep-3 inset-s letter-spacing anim-fade-in" ]
+            p [ class "speech-bubble-top background-deep-2 border-deep-2 inset-s letter-spacing anim-fade-in" ]
 
         bubbleBottom =
-            p [ class "speech-bubble-bottom background-deep-3 border-deep-3 inset-s letter-spacing anim-fade-in" ]
+            p [ class "speech-bubble-bottom background-deep-2 border-deep-2 inset-s letter-spacing anim-fade-in" ]
 
         nameSamples =
             [ span [ class "squish-inset-xs gutter-right-xs rounded background-a" ]
@@ -704,7 +771,7 @@ viewAction =
         , class "hover-opacity circle inline-flex justifyContent-center alignItems-center background-deep-2 focus-border"
         ]
         [ img
-            [ class "height-xs width-xs"
+            [ class "height-xs width-xs dynamic"
             , src "/assets/icons/github-light-32px.png"
             ]
             []
@@ -799,6 +866,9 @@ viewFocusHelp focusStatus =
             Nothing
 
 
+-- KEYBOARD ICONS
+
+
 helpInfo : List ( Html Msg ) -> String -> Html Msg
 helpInfo keys txt =
     span [ class "gutter-right-m" ] <|
@@ -807,7 +877,51 @@ helpInfo keys txt =
 
 keyBox : List ( Html Msg ) -> Html Msg
 keyBox =
-    kbd [ class "background-deep-2 border-s border-deep-3 squish-inset-xs rounded gutter-right-xs anim-pulsar-border" ]
+    kbd [ class "background-deep-2 border-s border-deep-3 squish-inset-xs rounded gutter-right-xs inline-flex align-center" ]
+
+
+enterKey : Html Msg
+enterKey =
+    keyBox [
+        img [ class "height-xs width-xs dynamic"
+            , src "/assets/icons/enter.svg"
+            , alt "enter key"
+            ]
+            []
+    ]
+
+
+arrowLeftKey : Html Msg
+arrowLeftKey =
+    keyBox [
+        img [ class "height-xs width-xs dynamic"
+            , src "/assets/icons/arrow-left.svg"
+            , alt "arrow left key"
+            ]
+            []
+    ]
+
+
+arrowRightKey : Html Msg
+arrowRightKey =
+    keyBox [
+        img [ class "height-xs width-xs dynamic"
+            , src "/assets/icons/arrow-right.svg"
+            , alt "arrow right key"
+            ]
+            []
+    ]
+
+
+backspaceKey : Html Msg
+backspaceKey =
+    keyBox [
+        img [ class "height-xs width-xs dynamic"
+            , src "/assets/icons/backspace.svg"
+            , alt "arrow left key"
+            ]
+            []
+    ]
 
 
 

@@ -1,5 +1,5 @@
-module Color exposing
-    ( Color
+module MyColor exposing
+    ( Color (..)
     , list
     , default
     , decoder

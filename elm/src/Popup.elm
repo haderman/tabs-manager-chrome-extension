@@ -1,14 +1,14 @@
-module Popup exposing (..)
+module Popup exposing (main)
+
 
 import Browser
 import Browser.Dom as Dom
 import Browser.Events exposing (onKeyDown)
-import Color as C
+import MyColor
 import Dict exposing (Dict)
-import FontAwesome exposing (icon, gitHub)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (..)
+import Html.Events exposing (onClick, onFocus, onBlur, onInput, onSubmit)
 import Json.Decode as Decode exposing (..)
 import Ports
 import Task
@@ -69,12 +69,8 @@ type FocusStatus
 type FormStatus
     = Empty
     | TypingValue W.WorkspaceName
-    | SelectingColor W.WorkspaceName C.Color
+    | SelectingColor W.WorkspaceName MyColor.Color
     | TryingToSaveEmptyText
-
-
-type Error
-    = TrySaveWorkspaceWithEmptyText
 
 
 type Status
@@ -100,7 +96,7 @@ type alias Model =
     { data : Data
     , status : Status
     , focusStatus : FocusStatus
-    , colorList : List C.Color
+    , colorList : List MyColor.Color
     , formStatus : FormStatus
     }
 
@@ -115,7 +111,7 @@ initModel =
         }
     , status = NoInitiated
     , focusStatus = NoneFocus
-    , colorList = C.list
+    , colorList = MyColor.list
     , formStatus = Empty
     }
 
@@ -131,7 +127,7 @@ init flags =
 
 type FormMsg
     = ChangeName W.WorkspaceName
-    | ChangeColor C.Color
+    | ChangeColor MyColor.Color
 
 
 type Msg
@@ -258,12 +254,12 @@ enterPressed model =
             ( { model | formStatus = TryingToSaveEmptyText }, Cmd.none )
 
         TypingValue value ->
-            ( { model | formStatus = SelectingColor value C.default }, Cmd.none )
+            ( { model | formStatus = SelectingColor value MyColor.default }, Cmd.none )
 
         SelectingColor name color ->
             let
                 payload =
-                    ( name, C.fromColorToString color )
+                    ( name, MyColor.fromColorToString color )
             in
             ( { model | focusStatus = NoneFocus }, Ports.createWorkspace payload )
 
@@ -369,7 +365,7 @@ focusElement newFocusStatus =
 view : Model -> Html Msg
 view model =
     div [ id "root"
-        , class ""
+        , class "light"
         ] <|
         case model.status of
             WorkspaceInUse workspaceId ->
@@ -385,7 +381,6 @@ view model =
                     [ viewWorkspaceInUse workspaceId model.data
                     ]
                 , viewListWorkspaces workspacesIds model.data.workspacesInfo
-                , viewFooter model
                 ]
 
             NoInitiated ->
@@ -397,25 +392,14 @@ view model =
                 [ viewHeader
                 , viewForm model.formStatus model.data
                 , viewListWorkspaces model.data.workspacesIds model.data.workspacesInfo
-                , viewFooter model
                 ]
 
             NoData ->
                 [ viewHeader
                 , viewForm model.formStatus model.data
-                , viewInstructions model.formStatus
-                , viewFooter model
+                , viewListWokspaceEmptyState
+                , viewFooter
                 ]
-
-
-viewLogo : Html Msg
-viewLogo =
-    img
-        [ class "height-s"
-        , src "/assets/brand/woki_text_blue_purple.svg"
-        , alt "Woki logo"
-        ]
-        []
 
 
 viewHeader : Html Msg
@@ -448,13 +432,8 @@ viewHeader =
                     []
                 ]
     in
-    header [ class "inset-m flex align-center justify-space-between" ]
-        [ viewLogo
-        , span [ class "flex align-center" ]
-            [ addShorcutLink
-            , settingsLink
-            ]
-        ]
+    header [ class "inset-m flex align-center justify-end" ]
+        [ settingsLink ]
 
 
 viewWorkspaceInUse : W.WorkspaceId -> Data -> Html Msg
@@ -485,7 +464,7 @@ viewWorkspaceInUse workspaceId data =
     in
     case Dict.get workspaceId data.workspacesInfo of
         Just { name, color } ->
-            div [ class <| "flex flex-1 justify-space-between squish-inset-m " ++ C.toBackgroundCSS color ]
+            div [ class <| "flex flex-1 justify-space-between squish-inset-m " ++ MyColor.toBackgroundCSS color ]
                 [ span [ class "circle-m gutter-right-s transparent" ]
                     []
                 , div [ class "flex flex-1 column justify-space-between squish-inset-s" ]
@@ -515,7 +494,7 @@ viewListWorkspaces workspacesIds workspacesInfo =
 
         viewWorkspace { id, name, color, tabs } =
             li [ class "text-m flex align-center" ]
-                [ span [ class <| "circle-m gutter-right-s " ++ C.toBackgroundCSS color ]
+                [ span [ class <| "circle-m gutter-right-s " ++ MyColor.toBackgroundCSS color ]
                     []
                 , button
                     [ class "text-left squish-inset-s flex-1 rounded focus-background"
@@ -546,9 +525,38 @@ viewListWorkspaces workspacesIds workspacesInfo =
 
 viewListWokspaceEmptyState : Html Msg
 viewListWokspaceEmptyState =
-    div [ class <| "flex flex-1 justify-center align-center text-primary" ]
-        [ h3 [ class "color-contrast textAlign-center" ]
-            [ text "You don't have more workspaces created" ]
+    let
+        title =
+            h3 [ class "text-secondary text-center gutter-bottom-xl" ]
+                [ text "You don't have more workspaces created" ]
+
+        thumbnail =
+            div [ class "rounded stretch-inset-m border-m border-deep-2" ]
+                [ div [ class "flex gutter-bottom-m" ]
+                    [ span [ class "background-deep-4 circle-s gutter-right-s" ]
+                        []
+                    , span [ class "background-deep-2 rounded inset-xs width-m" ]
+                        []
+                    ]
+                , div [ class "flex gutter-bottom-m" ]
+                    [ span [ class "background-deep-4 circle-s gutter-right-s" ]
+                        []
+                    , span [ class "background-deep-2 rounded inset-xs width-m" ]
+                        []
+                    ]
+                , div [ class "flex" ]
+                    [ span [ class "background-deep-4 circle-s gutter-right-s" ]
+                        []
+                    , span [ class "background-deep-2 rounded inset-xs width-m" ]
+                        []
+                    ]
+                , div [ class "absolute" ]
+                    []
+                ]
+    in
+    div [ class <| "flex column flex-1 justify-center align-center" ]
+        [ title
+        , thumbnail
         ]
 
 
@@ -560,14 +568,13 @@ viewForm : FormStatus -> Data -> Html Msg
 viewForm formStatus data =
     let
         tabsCount =
-            p [ class "text-secondary" ]
+            p [ class "text-secondary gutter-right-s" ]
                 [ text <| String.fromInt data.numTabsInUse ++ " Tabs" ]
 
         input_ currentValue =
             input
-                [ class "text-primary text-l rounded full-width"
+                [ class "text-primary text-l rounded full-width gutter-right-m"
                 , type_ "text"
-                , placeholder "Type a Name"
                 , autocomplete False
                 , id <| fromFocusStatusToElementId WorkspaceNameInputFocused
                 , tabindex 1
@@ -581,25 +588,37 @@ viewForm formStatus data =
                         UpdateForm <| ChangeName newValue
                     )
                 ]
-                [ span []
-                    [ text "" ]
+                []
+
+        nextStepButton animate =
+            button
+                [ onClick <| KeyPressed Enter
+                , onFocus <| ElementFocused DisconnectWorkspaceButtonFocused
+                , onBlur ElementBlurred
+                , class <|
+                    if animate == True then
+                        "circle focus-border height-s width-s vibrate delay"
+                    else
+                        "circle focus-border height-s width-s"
+                , tabindex 1
+                , type_ "button"
+                ]
+                [ img
+                    [ class "height-s width-s dynamic"
+                    , src "/assets/icons/arrow-right.svg"
+                    ]
+                    []
                 ]
 
-        helpContainer visible =
-            div [ class <|
-                    String.join " "
-                        [ "flex"
-                        , "justify-space-around"
-                        , "full-width"
-                        , "squish-inset-m"
-                        , "z-index-1"
-                        , "background-deep-3"
-                        , "slide-from-top"
-                        , if visible == True then
-                            "slide-from-top-show"
-                          else
-                            ""
-                        ]
+        helpContainerStyle =
+            String.join " "
+                [ "flex"
+                , "justify-space-between"
+                , "full-width"
+                , "squish-inset-m"
+                , "z-index-1"
+                , "background-deep-2"
+                , "slide-from-top"
                 ]
 
         selectingColorHelp =
@@ -622,7 +641,7 @@ viewForm formStatus data =
                     , onClick <| KeyPressed Right
                     ]
                     [ arrowRightKey ]
-                , text "Change Color"
+                , text "Color"
                 ]
             , span [ class "inline-flex align-center text-primary" ]
                 [ button
@@ -641,24 +660,28 @@ viewForm formStatus data =
         case formStatus of
             Empty ->
                 [ div [ class "relative squish-inset-m z-index-2 background-inherit" ]
-                    [ input_ ""
+                    [ div [ class "flex justify-space-between align-center" ]
+                        [ input_ ""
+                        , nextStepButton False
+                        ]
                     , tabsCount
                     ]
-                , helpContainer False
-                    selectingColorHelp
                 ]
 
             TypingValue value ->
-                [ div [ class "relative squish-inset-m background-transition z-index-2 background-inherit" ]
-                    [ input_ value
+                [ div [ class "relative squish-inset-m background-transition delay z-index-2 background-inherit" ]
+                    [ div [ class "flex justify-space-between align-center" ]
+                        [ input_ value
+                        , nextStepButton <| String.length value > 2
+                        ]
                     , tabsCount
                     ]
-                , helpContainer False
+                , div [ class helpContainerStyle ]
                     selectingColorHelp
                 ]
 
             SelectingColor workspaceName color ->
-                [ div [ class <| "relative flex column squish-inset-m z-index-2 background-transition " ++ C.toBackgroundCSS color ]
+                [ div [ class <| "relative flex column squish-inset-m z-index-2 background-transition " ++ MyColor.toBackgroundCSS color ]
                     [ div [ class "text-primary-high-contrast text-l" ]
                         [ span []
                             [ text workspaceName ]
@@ -668,72 +691,23 @@ viewForm formStatus data =
                             [ text <| String.fromInt data.numTabsInUse ++ " Tabs" ]
                         ]
                     ]
-                , helpContainer True
+                , div [ class <| helpContainerStyle ++ " show delay" ]
                     selectingColorHelp
                 ]
 
             TryingToSaveEmptyText ->
-                [ div [ class "relative squish-inset-m z-index-2" ]
-                    [ input_ ""
-                    , div [ class "flex justify-space-between" ]
+                [ div [ class "relative squish-inset-m z-index-2 background-inherit" ]
+                    [ div [ class "flex justify-space-between align-center" ]
+                        [ input_ ""
+                        , nextStepButton False
+                        ]
+                    , div [ class "flex flex-start" ]
                         [ tabsCount
-                        , span [ class "text-highlight" ]
+                        , span [ class "text-error font-400" ]
                             [ text "Type a label e.g 'news' or 'social'" ]
                         ]
                     ]
                 ]
-
-
-viewInstructions : FormStatus -> Html Msg
-viewInstructions formStatus =
-    let
-        bubbleTop =
-            p [ class "speech-bubble-top background-deep-2 border-deep-2 inset-s letter-spacing anim-fade-in" ]
-
-        bubbleBottom =
-            p [ class "speech-bubble-bottom background-deep-2 border-deep-2 inset-s letter-spacing anim-fade-in" ]
-
-        nameSamples =
-            [ span [ class "squish-inset-xs gutter-right-xs rounded background-a" ]
-                [ text "news" ]
-            , span [ class "squish-inset-xs gutter-right-xs rounded background-b" ]
-                [ text "social" ]
-            , span [ class "squish-inset-xs gutter-right-xs rounded background-c" ]
-                [ text "project-a" ]
-            , span [ class "squish-inset-xs gutter-right-xs rounded background-d" ]
-                [ text "task-b" ]
-            ]
-
-        inputNameHelp =
-            bubbleTop <|
-                p [ class "gutter-bottom-s" ]
-                    [ text "How would you like to save the opened tabs? Samples: " ]
-                    :: nameSamples
-
-        footerHelp value =
-            if not <| String.isEmpty value then
-                bubbleBottom
-                    [ text "Here you can see how you can interact with the keyboard" ]
-            else
-                text ""
-    in
-    div [ class "squish-inset-m text-primary flex-1 flex column justify-space-between" ] <|
-        case formStatus of
-            Empty ->
-                [ inputNameHelp ]
-
-            TypingValue value ->
-                [ inputNameHelp
-                , footerHelp value
-                ]
-
-            SelectingColor _ _ ->
-                [ bubbleTop
-                    [ text "You are almost done! Just use the arrows to change the color and press the Enter key to save!" ]
-                ]
-
-            TryingToSaveEmptyText ->
-                [ inputNameHelp ]
 
 
 customOnClick : Msg -> Html.Attribute Msg
@@ -752,132 +726,33 @@ customOnClick msg =
 -- VIEW FOOTER
 
 
-viewFooter : Model -> Html Msg
-viewFooter model =
-    footer [ class "flex justfy-space-between align-center inset-m sticky-bottom background-deep-1 text-primary" ]
-        [ viewHelp model.status model.formStatus model.focusStatus
-        , viewAction
-        ]
-
-
-viewAction : Html Msg
-viewAction =
-    a
-        [ target "_blank"
-        , href "https://github.com/haderman/tabs-manager-chrome-extension"
-        , tabindex 1
-        , onFocus <| ElementFocused GitHubLinkeFocused
-        , onBlur ElementBlurred
-        , class "hover-opacity circle inline-flex justifyContent-center alignItems-center background-deep-2 focus-border"
-        ]
-        [ img
-            [ class "height-xs width-xs dynamic"
-            , src "/assets/icons/github-light-32px.png"
+viewFooter : Html Msg
+viewFooter =
+    footer [ class "flex justify-end align-center inset-m background-deep-0 text-primary" ]
+        [ a
+            [ target "_blank"
+            , href "https://github.com/haderman/tabs-manager-chrome-extension"
+            , tabindex 1
+            , onFocus <| ElementFocused GitHubLinkeFocused
+            , onBlur ElementBlurred
+            , class "hover-opacity circle inline-flex justifyContent-center alignItems-center focus-border"
             ]
-            []
+            [ img
+                [ class "height-s width-s dynamic"
+                , src "/assets/icons/github.svg"
+                ]
+                []
+            ]
         ]
 
-
-viewHelp : Status -> FormStatus -> FocusStatus -> Html Msg
-viewHelp status formStatus focusStatus =
-    let
-        formHelp =
-            viewFormHelp formStatus
-
-        focusHelp =
-            viewFocusHelp focusStatus
-                |> Maybe.withDefault []
-    in
-    div [ class "flex-1" ] <|
-        case formHelp of
-            Just help ->
-                help
-
-            Nothing ->
-                navigationHelp status :: focusHelp
-
-
-navigationHelp : Status -> Html Msg
-navigationHelp status =
-    let
-        tab =
-            keyBox [ text "Tab" ]
-    in
-    if status == NoData then
-        text ""
-    else
-        helpInfo [ tab ] "Navigate"
-
-
-viewFormHelp : FormStatus -> Maybe ( List ( Html Msg ) )
-viewFormHelp formStatus =
-    let
-        enter =
-            keyBox [ text "Enter" ]
-
-        backSpace =
-            keyBox [ text "\u{232B}" ]
-
-        arrowLeft =
-            keyBox [ text "\u{2190}" ]
-
-        arrowRight =
-            keyBox [ text "\u{2192}" ]
-    in
-    case formStatus of
-        TypingValue _ ->
-            Just
-                [ helpInfo [ enter ] "Next" ]
-
-        SelectingColor _ _ ->
-            Just
-                [ helpInfo [ enter ] "Save"
-                , helpInfo [ arrowLeft, arrowRight ] "Color"
-                , helpInfo [ backSpace ] "Undo"
-                ]
-
-        _ ->
-            Nothing
-
-
-viewFocusHelp : FocusStatus -> Maybe ( List ( Html Msg ) )
-viewFocusHelp focusStatus =
-    let
-        enter =
-            keyBox [ text "Enter" ]
-    in
-    case focusStatus of
-        WorkspaceItemFocused ->
-            Just [ helpInfo [ enter ] "Open tabs" ]
-
-        GitHubLinkeFocused ->
-            Just [ helpInfo [ enter ] "Source code" ]
-
-        AddShortcutLinkFocused ->
-            Just [ helpInfo [ enter ] "Shortcuts page" ]
-
-        SettingsLinkFocused ->
-            Just [ helpInfo [ enter ] "Advanced view page" ]
-
-        DisconnectWorkspaceButtonFocused ->
-            Just [ helpInfo [ enter ] "Unmount workspace" ]
-
-        _ ->
-            Nothing
 
 
 -- KEYBOARD ICONS
 
 
-helpInfo : List ( Html Msg ) -> String -> Html Msg
-helpInfo keys txt =
-    span [ class "gutter-right-m" ] <|
-        List.concat [ keys, [ text txt] ]
-
-
 keyBox : List ( Html Msg ) -> Html Msg
 keyBox =
-    kbd [ class "background-deep-2 border-s border-deep-3 squish-inset-xs rounded gutter-right-xs inline-flex align-center" ]
+    kbd [ class "background-deep-3 border-s border-deep-3 squish-inset-xs rounded gutter-right-xs inline-flex align-center" ]
 
 
 enterKey : Html Msg
@@ -989,16 +864,6 @@ stateDecoder =
                     _ ->
                         Decode.succeed Idle
             )
-
-
-statusFromString : String -> Decoder Status
-statusFromString status =
-    case status of
-        "noData" ->
-            Decode.succeed NoData
-
-        _ ->
-            Decode.succeed Idle
 
 
 keyDecoder : Decoder Msg

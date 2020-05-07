@@ -1,6 +1,6 @@
 module Workspace exposing (..)
 
-import Color as C
+import MyColor
 import Json.Decode as D
 import Json.Encode as E
 
@@ -15,7 +15,7 @@ type alias WorkspaceName =
 
 type alias Workspace =
     { id : WorkspaceId
-    , color : C.Color
+    , color : MyColor.Color
     , name : String
     , tabs : List Tab
     }
@@ -36,7 +36,7 @@ decode : D.Decoder Workspace
 decode =
     D.map4 Workspace
         (D.field "id" D.int)
-        (D.field "color" C.decoder)
+        (D.field "color" MyColor.decoder)
         (D.field "name" D.string)
         (D.field "tabs" tabListDecoder)
 
@@ -63,7 +63,7 @@ encode workspace =
     E.object
         [ ( "id", E.int workspace.id )
         , ( "name", E.string workspace.name )
-        , ( "color", E.string <| C.fromColorToString workspace.color )
+        , ( "color", E.string <| MyColor.fromColorToString workspace.color )
         , ( "tabs", E.list encodeTab workspace.tabs )
         ]
 

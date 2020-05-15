@@ -79,6 +79,21 @@ const api = {
   Windows: {
     getAll: () =>
       chromePromise.windows.getAll()
+  },
+  Settings: {
+    _set: async newSettings => {
+      const settings = await api.Settings.get();
+      await chromePromise.storage.sync.set({ __settings__: { ...settings, ...newSettings } });
+      return api.Settings.get();
+    },
+    get: () => {
+      return chromePromise.storage.sync.get('__settings__')
+        .then(prop('__settings__'))
+        .then(defaultTo({ theme: 'dark' }));
+    },
+    setTheme: theme => {
+      return api.Settings._set({ theme });
+    }
   }
 };
 

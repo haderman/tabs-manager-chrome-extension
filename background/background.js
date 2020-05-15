@@ -139,9 +139,11 @@ async function loadData() {
   const ids = await api.Workspaces.getIds();
   const tabs = await Promise.all(ids.map(api.Workspaces.get));
   const result = zipObject(ids, tabs);
+  const settings = await api.Settings.get();
 
   return {
     ...result,
+    __settings__: settings,
     __workspaces_ids__: ids,
   };
 }
@@ -322,10 +324,10 @@ function handleWindowsCreated(window) {
 }
 
 function handleOnMessages(request, sender, sendResponse) {
+  if (appMachine.getCurrentState() !== 'appLoaded') return;
+
   const { type, payload, window } = request;
   logMessage(type, payload, window);
-
-  if (appMachine.getCurrentState() !== 'appLoaded') return;
 
   if (type === 'popup_opened' || type === 'newtab_opened') {
     broadcast(model)
@@ -427,6 +429,18 @@ function handleOnMessages(request, sender, sendResponse) {
         }
       }
     })
+  }
+
+  if (type === 'change_theme') {
+    api.Settings.setTheme(payload).then(settings => {
+      setModel({
+        ...model,
+        data: {
+          ...model.data,
+          __settings__: settings
+        }
+      });
+    });
   }
 }
 

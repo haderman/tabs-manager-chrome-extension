@@ -11,7 +11,7 @@ function onLoad() {
         switch (message.type) {
         case 'MODEL_UPDATED':
           const { modelsByWindowsID, data } = message.payload;
-          const { __workspaces_ids__, ...workspacesInfo } = data;
+          const { __workspaces_ids__, __settings__, ...workspacesInfo } = data;
           const payload = {
             workspaces: __workspaces_ids__.filter(i => i !== null),
             workspacesInfo: workspacesInfo,
@@ -50,6 +50,10 @@ function onLoad() {
 
     app.ports.disconnectWorkspace.subscribe(() => {
       chrome.extension.sendMessage({ type: 'disconnect_workspace', window });
+    });
+
+    app.ports.changeTheme.subscribe(theme => {
+      chrome.extension.sendMessage({ type: 'change_theme', payload: theme, window });
     });
   });
 }

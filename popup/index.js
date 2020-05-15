@@ -1,8 +1,7 @@
 function onLoad() {
   chrome.windows.getCurrent(function gotCurrentWindow(window) {
     app = Elm.Popup.init({
-      node: document.getElementById('elm'),
-      flags: { window: window.id }
+      node: document.getElementById('elm')
     });
 
     chrome.extension.sendMessage({ type: 'popup_opened', window });
@@ -19,7 +18,9 @@ function onLoad() {
             status: modelsByWindowsID[window.id],
             numTabs: modelsByWindowsID[window.id].numTabs
           }
-          console.log('payload: ', payload)
+
+          console.log('payload: ', payload);
+
           app.ports.receivedDataFromJS.send({
             data: {
               ...payload,

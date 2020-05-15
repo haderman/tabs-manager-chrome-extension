@@ -1,25 +1,24 @@
-module NewTab exposing (..)
+module NewTab exposing (main)
 
 import Browser
 import Browser.Dom as Dom
-import Color as C
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (..)
+import Html.Events as Events
 import Json.Decode as Decode exposing (..)
+import MyColor exposing (MyColor)
 import Ports
-import Svg exposing (..)
-import Svg.Attributes exposing (..)
 import Task
-import Workspace as W
+import Workspace exposing (Workspace)
 
 
 
 -- MAIN
 
 
-main : Program Flags Model Msg
+-- change () by Flags if it's required
+main : Program () Model Msg
 main =
     Browser.element
         { init = init
@@ -35,35 +34,32 @@ main =
 
 type CardStatus
     = Showing
-    | Editing W.Workspace
+    | Editing Workspace
 
 
 type Status
     = NoInitiated
     | Idle
     | NoData
-    | WorkspaceInUse W.WorkspaceId
-    | OpeningWorkspace W.WorkspaceId
-    | DeletingWorkspace W.WorkspaceId
+    | WorkspaceInUse Workspace.Id
+    | OpeningWorkspace Workspace.Id
+    | DeletingWorkspace Workspace.Id
 
 
 type alias Data =
-    { workspacesIds : List W.WorkspaceId
+    { workspacesIds : List Workspace.Id
     , state : Status
-    , workspacesInfo : Dict W.WorkspaceId W.Workspace
+    , workspacesInfo : Dict Workspace.Id Workspace
     , numTabsInUse : Int
     }
 
 
 type alias Model =
     { data : Data
-    , cards : List ( W.WorkspaceId, CardStatus )
+    , cards : List ( Workspace.Id, CardStatus )
     , status : Status
     }
 
-
-type alias Flags =
-    { window : Int }
 
 
 initModel : Model
@@ -79,8 +75,8 @@ initModel =
     }
 
 
-init : Flags -> ( Model, Cmd Msg )
-init flags =
+init : () -> ( Model, Cmd Msg )
+init _ =
     ( initModel, Cmd.none )
 
 
@@ -91,14 +87,14 @@ init flags =
 type Msg
     = NoOp
     | ReceivedDataFromJS (Result Decode.Error Data)
-    | OpenWorkspace W.WorkspaceId
-    | PressedCancelButton W.WorkspaceId
-    | PressedSaveButton W.Workspace
-    | PressedEditButton W.WorkspaceId
-    | PressedDeleteButton W.WorkspaceId
-    | PressedDeleteConfirmationButton W.WorkspaceId
+    | OpenWorkspace Workspace.Id
+    | PressedCancelButton Workspace.Id
+    | PressedSaveButton Workspace
+    | PressedEditButton Workspace.Id
+    | PressedDeleteButton Workspace.Id
+    | PressedDeleteConfirmationButton Workspace.Id
     | PressedCancelDeletionButton
-    | ChangeField W.WorkspaceId (String -> W.Workspace -> W.Workspace) String
+    | ChangeField Workspace.Id (String -> Workspace -> Workspace) String
     | TryFocusElement (Result Dom.Error ())
 
 
@@ -117,13 +113,13 @@ update msg model =
             , Cmd.none
             )
 
-        ReceivedDataFromJS (Err error) ->
+        ReceivedDataFromJS (Err _) ->
             ( model, Cmd.none )
 
         OpenWorkspace id ->
             ( model, Ports.openWorkspace id )
 
-        PressedCancelButton workspaceId ->
+        PressedCancelButton _ ->
             let
                 cards =
                     resetCardsToShowingStatus model.cards
@@ -131,7 +127,7 @@ update msg model =
             ( { model | cards = cards }, Cmd.none )
 
         PressedSaveButton workspace ->
-            ( model, Ports.updateWorkspace <| W.encode workspace )
+            ( model, Ports.updateWorkspace <| Workspace.encode workspace )
 
         PressedEditButton workspaceId ->
             case Dict.get workspaceId model.data.workspacesInfo of
@@ -182,7 +178,7 @@ update msg model =
             ( model, Cmd.none )
 
 
-resetCardsToShowingStatus : List ( W.WorkspaceId, CardStatus ) -> List ( W.WorkspaceId, CardStatus )
+resetCardsToShowingStatus : List ( Workspace.Id, CardStatus ) -> List ( Workspace.Id, CardStatus )
 resetCardsToShowingStatus cards =
     let
         toShowing ( id, _ ) =
@@ -191,7 +187,7 @@ resetCardsToShowingStatus cards =
     List.map toShowing cards
 
 
-changeCardStatus : W.WorkspaceId -> CardStatus -> List ( W.WorkspaceId, CardStatus ) -> List ( W.WorkspaceId, CardStatus )
+changeCardStatus : Workspace.Id -> CardStatus -> List ( Workspace.Id, CardStatus ) -> List ( Workspace.Id, CardStatus )
 changeCardStatus workspaceId newStatus cards =
     let
         changeStatus ( id, status ) =
@@ -204,14 +200,14 @@ changeCardStatus workspaceId newStatus cards =
     List.map changeStatus cards
 
 
-setName : String -> W.Workspace -> W.Workspace
+setName : String -> Workspace -> Workspace
 setName newName workspace =
     { workspace | name = newName }
 
 
-setColor : String -> W.Workspace -> W.Workspace
-setColor color workspace =
-    { workspace | color = C.fromStringToColor color }
+setMyColor : String -> Workspace -> Workspace
+setMyColor color workspace =
+    { workspace | color = MyColor.toMyColor color }
 
 
 
@@ -220,9 +216,9 @@ setColor color workspace =
 
 view : Model -> Html Msg
 view model =
-    case model.status of
-        DeletingWorkspace workspaceId ->
-            div [ Html.Attributes.class "relative" ]
+    div [ class "root" ] <|
+        case model.status of
+            DeletingWorkspace workspaceId ->
                 [ viewHeader model
                 , viewCards model.cards model.data
                 , case Dict.get workspaceId model.data.workspacesInfo of
@@ -230,64 +226,111 @@ view model =
                         viewDeletingWorkspace workspace
 
                     Nothing ->
-                        Html.text ""
+                        text ""
                 ]
 
-        _ ->
-            div []
+            NoData ->
+                [ viewListWokspaceEmptyState
+                ]
+
+            _ ->
                 [ viewHeader model
-                , viewCards model.cards model.data
+                , case model.cards of
+                    [] ->
+                        viewListWokspaceEmptyState
+
+                    _ ->
+                        viewCards model.cards model.data
                 ]
 
 
-viewDeletingWorkspace : W.Workspace -> Html Msg
-viewDeletingWorkspace {id, name, color} =
+viewListWokspaceEmptyState : Html Msg
+viewListWokspaceEmptyState =
+    let
+        title =
+            h3 [ class "text-secondary text-center gutter-bottom-xl" ]
+                [ text "You don't have more workspaces created" ]
+
+        thumbnail =
+            div [ class "rounded stretch-inset-m border-m border-deep-2" ]
+                [ div [ class "flex gutter-bottom-m" ]
+                    [ span [ class "background-deep-4 circle-s gutter-right-s" ]
+                        []
+                    , span [ class "background-deep-2 rounded inset-xs width-m" ]
+                        []
+                    ]
+                , div [ class "flex gutter-bottom-m" ]
+                    [ span [ class "background-deep-4 circle-s gutter-right-s" ]
+                        []
+                    , span [ class "background-deep-2 rounded inset-xs width-m" ]
+                        []
+                    ]
+                , div [ class "flex" ]
+                    [ span [ class "background-deep-4 circle-s gutter-right-s" ]
+                        []
+                    , span [ class "background-deep-2 rounded inset-xs width-m" ]
+                        []
+                    ]
+                , div [ class "absolute" ]
+                    []
+                ]
+    in
+    div [ class <| "flex column flex-1 justify-center align-center" ]
+        [ title
+        , thumbnail
+        ]
+
+
+viewDeletingWorkspace : Workspace -> Html Msg
+viewDeletingWorkspace {id, name} =
     let
         rootContainerStyle =
             String.join " "
                 [ "flex"
-                , "justifyContent-center"
-                , "alignItems-center"
-                , "flexDirection-col"
+                , "justify-center"
+                , "align-center"
+                , "column"
                 , "full-height"
                 , "full-width"
                 , "top-0"
                 , "left-0"
-                , "zIndex-4"
+                , "z-index-4"
                 , "background-transparent"
                 , "backdrop-filter-blur"
                 , "fixed"
                 ]
 
         workspaceName =
-            span [ Html.Attributes.class <| "color-" ++ C.fromColorToString color ]
-                [ Html.text name ]
+            span [ class "text-primary" ]
+                [ text name ]
 
         buttonStyle =
-            [ "padding-m hover margin-l rounded fontSize-s" ]
+            [ "squish-inset-m hover outer-l rounded text-m bold text-primary-high-contrast" ]
 
         cancelButtonStyle =
-            String.join " " <| buttonStyle ++ [ "background-contrast" ]
+            String.join " " <| buttonStyle ++ [ "background-deep-3" ]
 
         deleteButtonStyle =
-            String.join " " <| buttonStyle ++ [ "background-red" ]
+            String.join " " <| buttonStyle ++ [ "background-warning gutter-right-m" ]
     in
-    div [ Html.Attributes.class rootContainerStyle ]
-        [ h2 [ Html.Attributes.class "color-contrast" ]
-            [ Html.text "You are deleting "
-            , workspaceName
-            ]
-        , div [ Html.Attributes.class "marginTop-xl" ]
-            [ button
-                [ onClick PressedCancelDeletionButton
-                , Html.Attributes.class cancelButtonStyle
+    div [ class rootContainerStyle ]
+        [ div [ class "inset-l background-deep-0 rounded flex column align-end" ]
+            [ h2 [ class "text-primary gutter-bottom-m" ]
+                [ text "You are deleting "
+                , workspaceName
                 ]
-                [ Html.text "Cancel" ]
-            , button
-                [ onClick <| PressedDeleteConfirmationButton id
-                , Html.Attributes.class deleteButtonStyle
+            , div []
+                [ button
+                    [ Events.onClick <| PressedDeleteConfirmationButton id
+                    , class deleteButtonStyle
+                    ]
+                    [ text "Delete" ]
+                , button
+                    [ Events.onClick PressedCancelDeletionButton
+                    , class cancelButtonStyle
+                    ]
+                    [ text "Cancel" ]
                 ]
-                [ Html.text "Delete" ]
             ]
         ]
 
@@ -298,38 +341,33 @@ viewHeader model =
         style =
             String.join " "
                 [ "full-width"
-                , "height-m"
-                , "background-transparent"
+                , "squish-inset-m"
                 , "sticky"
-                , "backdrop-filter-blur"
-                , "boxShadow-black"
-                , "zIndex-4"
-                , "marginBottom-xl"
                 , "flex"
-                , "alignItems-center"
-                , "justifyContent-center"
+                , "align-center"
+                , "justify-center"
+                , "gutter-bottom-xl"
                 ]
-
-        viewName id =
+    in
+    case model.data.state of
+        WorkspaceInUse id ->
             case Dict.get id model.data.workspacesInfo of
-                Just { name, color } ->
-                    h2 [ Html.Attributes.class <| "color-" ++ C.fromColorToString color ]
-                        [ Html.text name ]
+                Just {name, color} ->
+                    div [ class <| style ++ " " ++ MyColor.toBackgroundCSS color ]
+                        [ h2 [ class "text-primary-high-contrast" ]
+                            [ text name ]
+                        ]
 
                 Nothing ->
-                    Html.text ""
-    in
-    div [ Html.Attributes.class style ]
-        [ case model.data.state of
-            WorkspaceInUse id ->
-                viewName id
+                    text ""
 
-            _ ->
-                Html.text ""
-        ]
+        _ ->
+            div [ class style ]
+                [ text "" ]
 
 
-viewCards : List ( W.WorkspaceId, CardStatus ) -> Data -> Html Msg
+
+viewCards : List ( Workspace.Id, CardStatus ) -> Data -> Html Msg
 viewCards cards { workspacesInfo } =
     let
         numColumns =
@@ -366,14 +404,14 @@ viewCards cards { workspacesInfo } =
                 |> List.filter removeCardsOfOtherCols
                 |> List.map createCard
     in
-    div [ Html.Attributes.class "grid gridTemplateCol-repeat-xl gridGap-m padding-m justifyContent-center" ]
+    div [ class "grid gridTemplateCol-repeat-xl gridGap-m inset-m justify-center" ]
         [ div [] col0
         , div [] col1
         , div [] col2
         ]
 
 
-viewCard : Dict W.WorkspaceId W.Workspace -> ( W.WorkspaceId, CardStatus ) -> Html Msg
+viewCard : Dict Workspace.Id Workspace -> ( Workspace.Id, CardStatus ) -> Html Msg
 viewCard workspacesInfo ( workspaceId, cardStatus ) =
     case cardStatus of
         Showing ->
@@ -382,34 +420,34 @@ viewCard workspacesInfo ( workspaceId, cardStatus ) =
                     viewShowingCard workspace
 
                 Nothing ->
-                    Html.text ""
+                    text ""
 
         Editing workspace ->
             viewEditingCard workspace
 
 
-viewShowingCard : W.Workspace -> Html Msg
+viewShowingCard : Workspace -> Html Msg
 viewShowingCard { id, name, color, tabs } =
     let
         header =
             let
                 viewName =
                     h3
-                        [ Html.Attributes.class <| "marginTop-none fontWeight-200 color-" ++ C.fromColorToString color ]
-                        [ Html.text name ]
+                        [ class "font-weight-200 text-primary-high-contrast" ]
+                        [ text name ]
 
                 buttonStyle =
-                    Html.Attributes.class <|
+                    class <|
                         String.join " "
                             [ "width-s"
                             , "height-s"
-                            , "background-secondary"
-                            , "circle marginLeft-l"
-                            , "marginBottom-xs"
-                            , "color-contrast show-in-hover"
+                            , "circle"
+                            , "gutter-bottom-xs"
+                            , "color-contrast"
+                            , "show-in-hover"
                             , "inline-flex"
-                            , "justifyContent-center"
-                            , "alignItems-center"
+                            , "justify-center"
+                            , "align-center"
                             ]
 
                 actions =
@@ -419,159 +457,151 @@ viewShowingCard { id, name, color, tabs } =
                             , customOnClick <| PressedEditButton id
                             ]
                             [ img
-                                [ Html.Attributes.class "height-xs width-xs hover-opacity"
+                                [ class "height-xs width-xs hover-opacity"
                                 , src "/assets/icons/pencil.svg"
                                 ]
                                 []
                             ]
                         ]
             in
-            div [ Html.Attributes.class "padding-m flex alignItems-center justifyContent-space-between background-black" ]
+            div [ class <| "squish-inset-m flex align-center justify-space-between " ++ MyColor.toBackgroundCSS color ]
                 [ viewName
                 , actions
                 ]
 
         body =
-            div [ Html.Attributes.class "padding-m opacity-70" ] <| List.map viewTab tabs
+            div [ class "padding-m opacity-70" ] <| List.map viewTab tabs
     in
     div
-        [ Html.Attributes.class <| "borderTop-s rounded height-fit-content background-black-2 cursor-rocket marginBottom-xl"
-        , onClick <| OpenWorkspace id
+        [ class "rounded overflow-hidden height-fit-content gutter-bottom-xl background-deep-1"
+        , Events.onClick <| OpenWorkspace id
         ]
         [ header
         , body
         ]
 
 
-viewEditingCard : W.Workspace -> Html Msg
+viewEditingCard : Workspace -> Html Msg
 viewEditingCard workspace =
     let
         body =
-            div [ Html.Attributes.class "padding-m opacity-70" ] <| List.map viewTab workspace.tabs
+            div [ class "inset-m" ] <|
+                List.map viewTab workspace.tabs
 
         header =
             let
                 inputName =
                     input
-                        [ Html.Attributes.class <| "fontSize-l background-transparent marginTop-none marginBottom-m fontWeight-200 color-" ++ C.fromColorToString workspace.color
-                        , Html.Attributes.selected True
-                        , Html.Attributes.autofocus True
+                        [ type_ "text"
+                        , class "text-l rounded text-primary"
+                        , selected True
+                        , autofocus True
                         , Html.Attributes.value workspace.name
-                        , Html.Events.onInput <| ChangeField workspace.id setName
+                        , Events.onInput <| ChangeField workspace.id setName
                         ]
                         []
 
                 buttonStyle =
-                    Html.Attributes.class <|
-                        String.join " "
-                            [ "width-s"
-                            , "height-s"
-                            , "background-secondary"
-                            , "circle marginLeft-l"
-                            , "marginBottom-xs"
-                            , "color-contrast show-in-hover"
-                            , "inline-flex"
-                            , "justifyContent-center"
-                            , "alignItems-center"
-                            ]
+                    String.join " "
+                        [ "width-s"
+                        , "height-s"
+                        , "circle"
+                        , "color-contrast"
+                        , "show-in-hover"
+                        , "inline-flex"
+                        , "justify-center"
+                        , "align-center"
+                        ]
             in
-            div [ Html.Attributes.class "padding-m flex flexDirection-col background-black" ]
-                [ div [ Html.Attributes.class "flex alignItems-center justifyContent-space-between" ]
+            div [ class "squish-inset-m flex column overflow-hidden" ]
+                [ div [ class "flex align-center justify-space-between gutter-bottom-s" ]
                     [ inputName
                     , div []
                         [ button
-                            [ buttonStyle
+                            [ class <| buttonStyle ++ " gutter-right-s"
                             , customOnClick <| PressedDeleteButton workspace.id
                             ]
                             [ img
-                                [ Html.Attributes.class "height-xs width-xs hover-opacity"
+                                [ class "height-s width-s dynamic hover-opacity"
                                 , src "/assets/icons/trash.svg"
                                 ]
                                 []
                             ]
                         , button
-                            [ buttonStyle
+                            [ class <| buttonStyle ++ " gutter-right-s"
                             , customOnClick <| PressedSaveButton workspace
                             ]
                             [ img
-                                [ Html.Attributes.class "height-xs width-xs hover-opacity"
+                                [ class "height-s width-s dynamic hover-opacity"
                                 , src "/assets/icons/save.svg"
                                 ]
                                 []
                             ]
                         , button
-                            [ buttonStyle
+                            [ class buttonStyle
                             , customOnClick <| PressedCancelButton workspace.id
                             ]
                             [ img
-                                [ Html.Attributes.class "height-xs width-xs hover-opacity"
+                                [ class "height-s width-s dynamic hover-opacity"
                                 , src "/assets/icons/close.svg"
                                 ]
                                 []
                             ]
                         ]
                     ]
-                , viewRadioGroupColors workspace.id workspace.color
+                , viewRadioGroupMyColors workspace.id workspace.color
                 ]
     in
     div
-        [ Html.Attributes.class <| "borderTop-s rounded height-fit-content background-black-2 marginBottom-xl"
-        , onClick NoOp
+        [ class "rounded height-fit-content background-deep-1 gutter-bottom-xl"
+        , Events.onClick NoOp
         ]
         [ header
         , body
         ]
 
 
-viewRadioGroupColors : W.WorkspaceId -> C.Color -> Html Msg
-viewRadioGroupColors workspaceId color =
+viewRadioGroupMyColors : Workspace.Id -> MyColor -> Html Msg
+viewRadioGroupMyColors workspaceId colorSelected =
     let
-        radio color_ =
+        radio selectableColor =
             let
                 isChecked =
-                    color_ == color
+                    selectableColor == colorSelected
 
-                stringColor =
-                    C.fromColorToString color_
+                backgroundMyColor =
+                    MyColor.toBackgroundCSS selectableColor
 
                 handleOnInput value =
-                    ChangeField workspaceId setColor value
+                    ChangeField workspaceId setMyColor value
             in
-            label [ Html.Attributes.class "radioLabel" ]
+            label [ class "radioLabel" ]
                 [ input
-                    [ Html.Attributes.type_ "radio"
-                    , Html.Attributes.name <| String.fromInt workspaceId ++ "-" ++ stringColor
-                    , Html.Attributes.class "absolute width-0 height-0"
+                    [ type_ "radio"
+                    , name <| "w-" ++ String.fromInt workspaceId
+                    , class "absolute width-0 height-0"
                     , checked isChecked
-                    , Html.Attributes.value stringColor
-                    , onInput handleOnInput
+                    , Html.Attributes.value <| MyColor.toString selectableColor
+                    , Events.onInput handleOnInput
                     ]
                     []
-                , span [ Html.Attributes.class <| "checkmark background-" ++ stringColor ] []
+                , span [ class <| "checkmark " ++ backgroundMyColor ] []
                 ]
     in
-    div [ Html.Attributes.class "flex opacity-70" ]
-        [ radio C.Green
-        , radio C.Blue
-        , radio C.Orange
-        , radio C.Purple
-        , radio C.Yellow
-        , radio C.Red
-        , radio C.Gray
-        , radio C.Cyan
-        ]
+    div [ class "flex opacity-70" ] <|
+        List.map radio MyColor.list
 
 
-viewTab : W.Tab -> Html Msg
-viewTab { title, url, icon } =
-    div [ Html.Attributes.class "flex alignItems-center marginBottom-s" ]
+viewTab : Workspace.Tab -> Html Msg
+viewTab {title, icon} =
+    div [ class "flex align-center gutter-bottom-s" ]
         [ img
             [ src <| Maybe.withDefault "" icon
-            , Html.Attributes.class "width-xs height-xs beforeBackgroundColor-secondary marginRight-s beforeBackgroundColor-secondary"
+            , class "width-xs height-xs gutter-right-s"
             ]
             []
-        , span [ Html.Attributes.class "flex-1 ellipsis overflow-hidden whiteSpace-nowrap color-contrast" ]
-            [ Html.text title ]
+        , span [ class "flex-1 truncate overflow-hidden text-primary" ]
+            [ text title ]
         ]
 
 
@@ -580,7 +610,7 @@ viewTab { title, url, icon } =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.batch
         [ Ports.receivedDataFromJS (Decode.decodeValue dataDecoder >> ReceivedDataFromJS) ]
 
@@ -598,9 +628,15 @@ focusElement elementId =
 -- HELPERS
 
 
+onClickStopPropagation : msg -> Attribute msg
+onClickStopPropagation msg =
+    Events.stopPropagationOn "click"
+        (Decode.succeed ( msg, True ))
+
+
 customOnClick : Msg -> Html.Attribute Msg
 customOnClick msg =
-    Html.Events.custom
+    Events.custom
         "click"
         (Decode.succeed
             { stopPropagation = True
@@ -624,9 +660,9 @@ dataDecoder =
             (Decode.field "numTabs" Decode.int)
 
 
-workspacesInfoDecoder : Decoder (Dict W.WorkspaceId W.Workspace)
+workspacesInfoDecoder : Decoder (Dict Workspace.Id Workspace)
 workspacesInfoDecoder =
-    Decode.dict W.decode
+    Decode.dict Workspace.decode
         |> Decode.map stringDictToIntDict
 
 
@@ -665,13 +701,3 @@ stateDecoder =
                     _ ->
                         Decode.succeed Idle
             )
-
-
-statusFromString : String -> Decoder Status
-statusFromString status =
-    case status of
-        "noData" ->
-            Decode.succeed NoData
-
-        _ ->
-            Decode.succeed Idle

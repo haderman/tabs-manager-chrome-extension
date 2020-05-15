@@ -1,156 +1,126 @@
 module MyColor exposing
-    ( Color (..)
+    ( MyColor (..)
     , list
     , default
     , decoder
+    , toMyColorCSS
     , toBackgroundCSS
-    , fromColorToString
-    , fromStringToColor
+    , toMyColor
+    , toString
     )
 
 import Json.Decode as D
 
 
-type Color
-    = ColorA
-    | ColorB
-    | ColorC
-    | ColorD
-    | ColorE
-    | ColorF
-    | ColorG
-    | ColorH
-    | ColorI
+type MyColor
+    = MyColorA
+    | MyColorB
+    | MyColorC
+    | MyColorD
+    | MyColorE
+    | MyColorF
+    | MyColorG
+    | MyColorH
+    | MyColorI
 
 
-list : List Color
+list : List MyColor
 list =
-    [ ColorA
-    , ColorB
-    , ColorC
-    , ColorD
-    , ColorE
-    , ColorF
-    , ColorG
-    , ColorH
-    , ColorI
+    [ MyColorA
+    , MyColorB
+    , MyColorC
+    , MyColorD
+    , MyColorE
+    , MyColorF
+    , MyColorG
+    , MyColorH
+    , MyColorI
     ]
 
 
-default : Color
+default : MyColor
 default =
-    ColorA
+    List.head list
+        |> Maybe.withDefault MyColorA
 
 
-toBackgroundCSS : Color -> String
+toBackgroundCSS : MyColor -> String
 toBackgroundCSS color =
     "background-" ++ toString color
 
 
+toMyColorCSS : MyColor -> String
+toMyColorCSS color =
+    "color-" ++ toString color
 
--- HELPERS
 
-
-toString : Color -> String
+toString : MyColor -> String
 toString color =
     case color of
-        ColorA ->
+        MyColorA ->
             "a"
 
-        ColorB ->
+        MyColorB ->
             "b"
 
-        ColorC ->
+        MyColorC ->
             "c"
 
-        ColorD ->
+        MyColorD ->
             "d"
 
-        ColorE ->
+        MyColorE ->
             "e"
 
-        ColorF ->
+        MyColorF ->
             "f"
 
-        ColorG ->
+        MyColorG ->
             "g"
 
-        ColorH ->
+        MyColorH ->
             "h"
 
-        ColorI ->
+        MyColorI ->
             "i"
 
 
-
-
-fromColorToString : Color -> String
-fromColorToString color =
-    case color of
-        ColorA ->
-            "green"
-
-        ColorB ->
-            "blue"
-
-        ColorC ->
-            "orange"
-
-        ColorD ->
-            "purple"
-
-        ColorE ->
-            "yellow"
-
-        ColorF ->
-            "red"
-
-        ColorG ->
-            "gray"
-
-        ColorH ->
-            "cyan"
-
-        ColorI ->
-            "cyan"
-
-
-fromStringToColor : String -> Color
-fromStringToColor str =
+toMyColor : String -> MyColor
+toMyColor str =
     case str of
-        "green" ->
-            ColorA
+        "a" ->
+            MyColorA
 
-        "blue" ->
-            ColorB
+        "b" ->
+            MyColorB
 
-        "orange" ->
-            ColorC
+        "c" ->
+            MyColorC
 
-        "purple" ->
-            ColorD
+        "d" ->
+            MyColorD
 
-        "yellow" ->
-            ColorE
+        "e" ->
+            MyColorE
 
-        "red" ->
-            ColorF
+        "f" ->
+            MyColorF
 
-        "gray" ->
-            ColorG
+        "g" ->
+            MyColorG
 
-        "cyan" ->
-            ColorH
+        "h" ->
+            MyColorH
 
         _ ->
-            ColorI
+            MyColorI
 
 
 
 -- JSON
 
 
-decoder : D.Decoder Color
+decoder : D.Decoder MyColor
 decoder =
     D.string
-        |> D.andThen (D.succeed << fromStringToColor)
+        |> D.andThen (D.succeed << toMyColor)

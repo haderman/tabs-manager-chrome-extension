@@ -1,21 +1,28 @@
-module Workspace exposing (..)
+module Workspace exposing
+    ( Workspace
+    , Id
+    , Name
+    , Tab
+    , decode
+    , encode
+    )
 
-import MyColor
+import MyColor exposing (MyColor)
 import Json.Decode as D
 import Json.Encode as E
 
 
-type alias WorkspaceId =
+type alias Id =
     Int
 
 
-type alias WorkspaceName =
+type alias Name =
     String
 
 
 type alias Workspace =
-    { id : WorkspaceId
-    , color : MyColor.Color
+    { id : Id
+    , color : MyColor
     , name : String
     , tabs : List Tab
     }
@@ -63,7 +70,7 @@ encode workspace =
     E.object
         [ ( "id", E.int workspace.id )
         , ( "name", E.string workspace.name )
-        , ( "color", E.string <| MyColor.fromColorToString workspace.color )
+        , ( "color", E.string <| MyColor.toString workspace.color )
         , ( "tabs", E.list encodeTab workspace.tabs )
         ]
 

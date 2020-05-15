@@ -1,8 +1,7 @@
 function onLoad() {
   chrome.windows.getCurrent(function gotCurrentWindow(window) {
     app = Elm.NewTab.init({
-      node: document.getElementById('elm'),
-      flags: { window: window.id }
+      node: document.getElementById('elm')
     });
 
     chrome.extension.sendMessage({ type: 'newtab_opened', window });
@@ -21,7 +20,13 @@ function onLoad() {
           }
           console.log('payload: ', payload)
           app.ports.receivedDataFromJS.send({
-            data: payload
+            data: {
+              ...payload,
+              // workspaces: [],
+              // status: {
+              //   state: 'noData'
+              // }
+            }
           });
           return;
         }

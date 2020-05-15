@@ -12,14 +12,15 @@ import Html.Events exposing (onClick, onFocus, onBlur, onInput, onSubmit)
 import Json.Decode as Decode exposing (..)
 import Ports
 import Task
-import Workspace as W
+import Workspace exposing (Workspace)
 
 
 
 -- MAIN
 
 
-main : Program Flags Model Msg
+-- change () by Flags if it's required
+main : Program () Model Msg
 main =
     Browser.element
         { init = init
@@ -58,7 +59,7 @@ type Key
 type FocusStatus
     = NoneFocus
     | WorkspaceNameInputFocused
-    | RadioGroupColorsFocused
+    | RadioGroupMyColorsFocused
     | WorkspaceItemFocused
     | GitHubLinkeFocused
     | AddShortcutLinkFocused
@@ -68,8 +69,8 @@ type FocusStatus
 
 type FormStatus
     = Empty
-    | TypingValue W.WorkspaceName
-    | SelectingColor W.WorkspaceName MyColor.Color
+    | TypingValue Workspace.Name
+    | SelectingMyColor Workspace.Name MyColor.MyColor
     | TryingToSaveEmptyText
 
 
@@ -77,26 +78,22 @@ type Status
     = NoInitiated
     | Idle
     | NoData
-    | WorkspaceInUse W.WorkspaceId
+    | WorkspaceInUse Workspace.Id
 
 
 type alias Data =
-    { workspacesIds : List W.WorkspaceId
+    { workspacesIds : List Workspace.Id
     , status : Status
-    , workspacesInfo : Dict W.WorkspaceId W.Workspace
+    , workspacesInfo : Dict Workspace.Id Workspace
     , numTabsInUse : Int
     }
-
-
-type alias Flags =
-    { window : Int }
 
 
 type alias Model =
     { data : Data
     , status : Status
     , focusStatus : FocusStatus
-    , colorList : List MyColor.Color
+    , colorList : List MyColor.MyColor
     , formStatus : FormStatus
     }
 
@@ -116,8 +113,8 @@ initModel =
     }
 
 
-init : Flags -> ( Model, Cmd Msg )
-init flags =
+init : () -> ( Model, Cmd Msg )
+init _ =
     ( initModel, Cmd.none )
 
 
@@ -126,14 +123,13 @@ init flags =
 
 
 type FormMsg
-    = ChangeName W.WorkspaceName
-    | ChangeColor MyColor.Color
+    = ChangeName Workspace.Name
 
 
 type Msg
     = NoOp
     | ReceivedDataFromJS (Result Decode.Error Data)
-    | OpenWorkspace W.WorkspaceId
+    | OpenWorkspace Workspace.Id
     | UpdateForm FormMsg
     | KeyPressed Key
     | TryFocusElement (Result Dom.Error ())
@@ -199,14 +195,6 @@ updateForm formMsg model =
               , Cmd.none
             )
 
-        ChangeColor color ->
-            case model.formStatus of
-                SelectingColor name _ ->
-                    ( { model | formStatus = SelectingColor name color }, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
-
 
 
 -- HANDLE KEYBOARD NAVIGATION
@@ -240,7 +228,7 @@ handleKeyPressed key model =
 backspacePressed : Model -> ( Model, Cmd Msg )
 backspacePressed model =
     case model.formStatus of
-        SelectingColor value _ ->
+        SelectingMyColor value _ ->
             ( { model | formStatus = TypingValue value }, focusElement WorkspaceNameInputFocused )
 
         _ ->
@@ -254,12 +242,12 @@ enterPressed model =
             ( { model | formStatus = TryingToSaveEmptyText }, Cmd.none )
 
         TypingValue value ->
-            ( { model | formStatus = SelectingColor value MyColor.default }, Cmd.none )
+            ( { model | formStatus = SelectingMyColor value MyColor.default }, Cmd.none )
 
-        SelectingColor name color ->
+        SelectingMyColor name color ->
             let
                 payload =
-                    ( name, MyColor.fromColorToString color )
+                    ( name, MyColor.toString color )
             in
             ( { model | focusStatus = NoneFocus }, Ports.createWorkspace payload )
 
@@ -271,7 +259,7 @@ downPressed : Model -> ( Model, Cmd Msg )
 downPressed model =
     case model.focusStatus of
         WorkspaceNameInputFocused ->
-            ( model, focusElement RadioGroupColorsFocused )
+            ( model, focusElement RadioGroupMyColorsFocused )
 
         _ ->
             ( model, Cmd.none )
@@ -280,7 +268,7 @@ downPressed model =
 upPressed : Model -> ( Model, Cmd Msg )
 upPressed model =
     case model.focusStatus of
-        RadioGroupColorsFocused ->
+        RadioGroupMyColorsFocused ->
             ( model, focusElement WorkspaceNameInputFocused )
 
         _ ->
@@ -290,10 +278,10 @@ upPressed model =
 leftPressed : Model -> ( Model, Cmd Msg )
 leftPressed model =
     case model.formStatus of
-        SelectingColor workspaceName currentColor ->
+        SelectingMyColor workspaceName currentMyColor ->
             let
                 toIndex index_ color_ =
-                    if color_ == currentColor then
+                    if color_ == currentMyColor then
                         index_
                     else
                         0
@@ -308,10 +296,10 @@ leftPressed model =
                         |> List.take getIndex
                         |> List.reverse
                         |> List.head
-                        |> Maybe.withDefault currentColor
+                        |> Maybe.withDefault currentMyColor
 
             in
-            ( { model | formStatus = SelectingColor workspaceName color }, Cmd.none )
+            ( { model | formStatus = SelectingMyColor workspaceName color }, Cmd.none )
 
         _ ->
             ( model, Cmd.none )
@@ -320,10 +308,10 @@ leftPressed model =
 rightPressed : Model -> ( Model, Cmd Msg )
 rightPressed model =
     case model.formStatus of
-        SelectingColor workspaceName  currentColor ->
+        SelectingMyColor workspaceName  currentMyColor ->
             let
                 toIndex index_ color_ =
-                    if color_ == currentColor then
+                    if color_ == currentMyColor then
                         index_
                     else
                         0
@@ -337,9 +325,9 @@ rightPressed model =
                     model.colorList
                         |> List.drop (getIndex + 1)
                         |> List.head
-                        |> Maybe.withDefault currentColor
+                        |> Maybe.withDefault currentMyColor
             in
-            ( { model | formStatus = SelectingColor workspaceName color }, Cmd.none )
+            ( { model | formStatus = SelectingMyColor workspaceName color }, Cmd.none )
 
         _ ->
             ( model, Cmd.none )
@@ -364,9 +352,7 @@ focusElement newFocusStatus =
 
 view : Model -> Html Msg
 view model =
-    div [ id "root"
-        , class "light"
-        ] <|
+    div [ class "root" ] <|
         case model.status of
             WorkspaceInUse workspaceId ->
                 let
@@ -436,7 +422,7 @@ viewHeader =
         [ settingsLink ]
 
 
-viewWorkspaceInUse : W.WorkspaceId -> Data -> Html Msg
+viewWorkspaceInUse : Workspace.Id -> Data -> Html Msg
 viewWorkspaceInUse workspaceId data =
     let
         viewNumTabs =
@@ -480,7 +466,7 @@ viewWorkspaceInUse workspaceId data =
 
 
 
-viewListWorkspaces : List W.WorkspaceId -> Dict W.WorkspaceId W.Workspace -> Html Msg
+viewListWorkspaces : List Workspace.Id -> Dict Workspace.Id Workspace -> Html Msg
 viewListWorkspaces workspacesIds workspacesInfo =
     let
         getWorkspace id =
@@ -621,7 +607,7 @@ viewForm formStatus data =
                 , "slide-from-top"
                 ]
 
-        selectingColorHelp =
+        selectingMyColorHelp =
             [ span [ class "inline-flex align-center text-primary" ]
                 [ button
                     [ type_ "button"
@@ -641,7 +627,7 @@ viewForm formStatus data =
                     , onClick <| KeyPressed Right
                     ]
                     [ arrowRightKey ]
-                , text "Color"
+                , text "MyColor"
                 ]
             , span [ class "inline-flex align-center text-primary" ]
                 [ button
@@ -677,10 +663,10 @@ viewForm formStatus data =
                     , tabsCount
                     ]
                 , div [ class helpContainerStyle ]
-                    selectingColorHelp
+                    selectingMyColorHelp
                 ]
 
-            SelectingColor workspaceName color ->
+            SelectingMyColor workspaceName color ->
                 [ div [ class <| "relative flex column squish-inset-m z-index-2 background-transition " ++ MyColor.toBackgroundCSS color ]
                     [ div [ class "text-primary-high-contrast text-l" ]
                         [ span []
@@ -692,7 +678,7 @@ viewForm formStatus data =
                         ]
                     ]
                 , div [ class <| helpContainerStyle ++ " show delay" ]
-                    selectingColorHelp
+                    selectingMyColorHelp
                 ]
 
             TryingToSaveEmptyText ->
@@ -827,9 +813,9 @@ decodeNumTabs =
             )
 
 
-workspacesInfoDecoder : Decoder (Dict W.WorkspaceId W.Workspace)
+workspacesInfoDecoder : Decoder (Dict Workspace.Id Workspace)
 workspacesInfoDecoder =
-    Decode.dict W.decode
+    Decode.dict Workspace.decode
         |> Decode.map stringDictToIntDict
 
 
@@ -910,7 +896,7 @@ fromFocusStatusToElementId focusStatus =
         WorkspaceNameInputFocused ->
             "input-workspace-name"
 
-        RadioGroupColorsFocused ->
+        RadioGroupMyColorsFocused ->
             "radio-group-colors"
 
         WorkspaceItemFocused ->

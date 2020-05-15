@@ -16,7 +16,8 @@ function onLoad() {
             workspaces: __workspaces_ids__.filter(i => i !== null),
             workspacesInfo: workspacesInfo,
             status: modelsByWindowsID[window.id],
-            numTabs: modelsByWindowsID[window.id].numTabs
+            numTabs: modelsByWindowsID[window.id].numTabs,
+            settings: __settings__
           }
 
           console.log('payload: ', payload);

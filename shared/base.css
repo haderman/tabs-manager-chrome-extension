@@ -539,6 +539,11 @@ VERSION - 2
   --size-xl: 21px;
 }
 
+.light,
+.dark {
+  transition: all 500ms;
+}
+
 /* SPACING */
 .inset-none { padding: 0px; }
 .inset-xs { padding: var(--size-xs); }

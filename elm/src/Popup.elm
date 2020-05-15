@@ -8,10 +8,11 @@ import MyColor
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onFocus, onBlur, onInput, onSubmit)
+import Html.Events as Events exposing (onClick, onFocus, onBlur, onInput, onSubmit)
 import Json.Decode as Decode exposing (..)
 import Ports
 import Task
+import Theme exposing (Theme)
 import Workspace exposing (Workspace)
 
 
@@ -86,6 +87,7 @@ type alias Data =
     , status : Status
     , workspacesInfo : Dict Workspace.Id Workspace
     , numTabsInUse : Int
+    , theme : Theme
     }
 
 
@@ -105,6 +107,7 @@ initModel =
         , workspacesInfo = Dict.empty
         , status = NoInitiated
         , numTabsInUse = 0
+        , theme = Theme.default
         }
     , status = NoInitiated
     , focusStatus = NoneFocus
@@ -137,6 +140,7 @@ type Msg
     | ElementBlurred
     | OpenChromePage String
     | DisconnectWorkspace
+    | ChangeTheme Theme
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -179,6 +183,9 @@ update msg model =
 
         DisconnectWorkspace ->
             ( { model | formStatus = Empty }, Ports.disconnectWorkspace () )
+
+        ChangeTheme theme ->
+            ( model, Ports.changeTheme <| Theme.toString theme )
 
 
 updateForm : FormMsg -> Model -> ( Model, Cmd Msg )
@@ -352,7 +359,7 @@ focusElement newFocusStatus =
 
 view : Model -> Html Msg
 view model =
-    div [ class "root" ] <|
+    div [ class <| "root " ++ Theme.toString model.data.theme  ] <|
         case model.status of
             WorkspaceInUse workspaceId ->
                 let
@@ -362,7 +369,7 @@ view model =
                     workspacesIds =
                         List.filter idInUse model.data.workspacesIds
                 in
-                [ viewHeader
+                [ viewHeader model.data.theme
                 , div [ class "flex sticky-top" ]
                     [ viewWorkspaceInUse workspaceId model.data
                     ]
@@ -375,22 +382,55 @@ view model =
                 ]
 
             Idle ->
-                [ viewHeader
+                [ viewHeader model.data.theme
                 , viewForm model.formStatus model.data
                 , viewListWorkspaces model.data.workspacesIds model.data.workspacesInfo
                 ]
 
             NoData ->
-                [ viewHeader
+                [ viewHeader model.data.theme
                 , viewForm model.formStatus model.data
                 , viewListWokspaceEmptyState
                 , viewFooter
                 ]
 
 
-viewHeader : Html Msg
-viewHeader =
+viewHeader : Theme -> Html Msg
+viewHeader theme =
     let
+        buttonTheme =
+            let
+                buttonAttrs onClick =
+                    [ Events.onClick onClick
+                    , tabindex 1
+                    , onFocus <| ElementFocused SettingsLinkFocused
+                    , onBlur ElementBlurred
+                    , class "circle inline-flex justify-center align-center focus-border gutter-right-m"
+                    ]
+
+                imgStyle =
+                    "height-s width-s dynamic"
+            in
+            case theme of
+                Theme.Dark ->
+                    button
+                        (buttonAttrs <| ChangeTheme Theme.Light)
+                        [ img
+                            [ class imgStyle
+                            , src "/assets/icons/sun.svg"
+                            ]
+                            []
+                        ]
+                Theme.Light ->
+                    button
+                        (buttonAttrs <| ChangeTheme Theme.Dark)
+                        [ img
+                            [ class imgStyle
+                            , src "/assets/icons/moon.svg"
+                            ]
+                            []
+                        ]
+
         addShorcutLink =
             a
                 [ href "#"
@@ -419,7 +459,9 @@ viewHeader =
                 ]
     in
     header [ class "inset-m flex align-center justify-end" ]
-        [ settingsLink ]
+        [ buttonTheme
+        , settingsLink
+        ]
 
 
 viewWorkspaceInUse : Workspace.Id -> Data -> Html Msg
@@ -698,7 +740,7 @@ viewForm formStatus data =
 
 customOnClick : Msg -> Html.Attribute Msg
 customOnClick msg =
-    Html.Events.custom
+    Events.custom
         "onInput"
         (Decode.succeed
             { stopPropagation = True
@@ -714,7 +756,7 @@ customOnClick msg =
 
 viewFooter : Html Msg
 viewFooter =
-    footer [ class "flex justify-end align-center inset-m background-deep-0 text-primary" ]
+    footer [ class "flex justify-end align-center inset-m text-primary" ]
         [ a
             [ target "_blank"
             , href "https://github.com/haderman/tabs-manager-chrome-extension"
@@ -792,11 +834,12 @@ backspaceKey =
 dataDecoder : Decoder Data
 dataDecoder =
     Decode.field "data" <|
-        Decode.map4 Data
+        Decode.map5 Data
             (Decode.field "workspaces" (Decode.list Decode.int))
             (Decode.field "status" stateDecoder)
             (Decode.field "workspacesInfo" workspacesInfoDecoder)
             (Decode.field "numTabs" decodeNumTabs)
+            (Decode.field "settings" Theme.decoder)
 
 
 decodeNumTabs : Decoder Int

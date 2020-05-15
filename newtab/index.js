@@ -16,7 +16,8 @@ function onLoad() {
             workspaces: __workspaces_ids__.filter(i => i !== null),
             workspacesInfo: workspacesInfo,
             status: modelsByWindowsID[window.id],
-            numTabs: modelsByWindowsID[window.id].numTabs
+            numTabs: modelsByWindowsID[window.id].numTabs,
+            settings: __settings__
           }
           console.log('payload: ', payload)
           app.ports.receivedDataFromJS.send({
@@ -43,10 +44,6 @@ function onLoad() {
 
     app.ports.deleteWorkspace.subscribe(function (workspaceId) {
       chrome.extension.sendMessage({ type: 'delete_workspace', payload: workspaceId, window });
-    });
-
-    app.ports.changeTheme.subscribe(theme => {
-      chrome.extension.sendMessage({ type: 'change_theme', payload: theme, window });
     });
   });
 }

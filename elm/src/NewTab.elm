@@ -10,6 +10,7 @@ import Json.Decode as Decode exposing (..)
 import MyColor exposing (MyColor)
 import Ports
 import Task
+import Theme exposing (Theme)
 import Workspace exposing (Workspace)
 
 
@@ -51,6 +52,7 @@ type alias Data =
     , state : Status
     , workspacesInfo : Dict Workspace.Id Workspace
     , numTabsInUse : Int
+    , theme : Theme
     }
 
 
@@ -58,6 +60,7 @@ type alias Model =
     { data : Data
     , cards : List ( Workspace.Id, CardStatus )
     , status : Status
+    , error : String
     }
 
 
@@ -69,9 +72,11 @@ initModel =
         , state = NoInitiated
         , workspacesInfo = Dict.empty
         , numTabsInUse = 0
+        , theme = Theme.default
         }
     , cards = []
     , status = NoInitiated
+    , error = ""
     }
 
 
@@ -113,8 +118,8 @@ update msg model =
             , Cmd.none
             )
 
-        ReceivedDataFromJS (Err _) ->
-            ( model, Cmd.none )
+        ReceivedDataFromJS (Err error) ->
+            ( { model | error = Debug.toString error }, Cmd.none )
 
         OpenWorkspace id ->
             ( model, Ports.openWorkspace id )
@@ -216,7 +221,7 @@ setMyColor color workspace =
 
 view : Model -> Html Msg
 view model =
-    div [ class "root" ] <|
+    div [ class <| "root " ++ Theme.toString model.data.theme  ] <|
         case model.status of
             DeletingWorkspace workspaceId ->
                 [ viewHeader model
@@ -653,11 +658,12 @@ customOnClick msg =
 dataDecoder : Decoder Data
 dataDecoder =
     Decode.field "data" <|
-        Decode.map4 Data
+        Decode.map5 Data
             (Decode.field "workspaces" (Decode.list Decode.int))
             (Decode.field "status" stateDecoder)
             (Decode.field "workspacesInfo" workspacesInfoDecoder)
             (Decode.field "numTabs" Decode.int)
+            (Decode.field "settings" Theme.decoder) -- This will be decode settings in the future
 
 
 workspacesInfoDecoder : Decoder (Dict Workspace.Id Workspace)

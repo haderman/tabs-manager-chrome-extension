@@ -1,7 +1,8 @@
 function onLoad() {
   chrome.windows.getCurrent(function gotCurrentWindow(window) {
     app = Elm.Popup.init({
-      node: document.getElementById('elm')
+      node: document.getElementById('elm'),
+      flags: {}
     });
 
     chrome.extension.sendMessage({ type: 'popup_opened', window });

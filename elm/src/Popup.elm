@@ -20,8 +20,7 @@ import Workspace exposing (Workspace)
 -- MAIN
 
 
--- change () by Flags if it's required
-main : Program () Model Msg
+main : Program Flags Model Msg
 main =
     Browser.element
         { init = init
@@ -45,6 +44,10 @@ subscriptions _ =
 
 
 -- MODEL
+
+
+type alias Flags =
+    ()
 
 
 type Key
@@ -116,7 +119,7 @@ initModel =
     }
 
 
-init : () -> ( Model, Cmd Msg )
+init : Flags -> ( Model, Cmd Msg )
 init _ =
     ( initModel, Cmd.none )
 
@@ -417,7 +420,7 @@ viewHeader theme =
                         (buttonAttrs <| ChangeTheme Theme.Light)
                         [ img
                             [ class imgStyle
-                            , src "/assets/icons/sun.svg"
+                            , src "/assets/icons/moon.svg"
                             ]
                             []
                         ]
@@ -426,7 +429,7 @@ viewHeader theme =
                         (buttonAttrs <| ChangeTheme Theme.Dark)
                         [ img
                             [ class imgStyle
-                            , src "/assets/icons/moon.svg"
+                            , src "/assets/icons/sun.svg"
                             ]
                             []
                         ]
@@ -780,7 +783,7 @@ viewFooter =
 
 keyBox : List ( Html Msg ) -> Html Msg
 keyBox =
-    kbd [ class "background-deep-3 border-s border-deep-3 squish-inset-xs rounded gutter-right-xs inline-flex align-center" ]
+    kbd [ class "background-deep-3 squish-inset-xs rounded gutter-right-xs inline-flex align-center" ]
 
 
 enterKey : Html Msg

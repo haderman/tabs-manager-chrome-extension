@@ -1,462 +1,3 @@
-* {
-  font-weight: 100;
-  padding: 0;
-  margin: 0;
-}
-
-html {
-  background-color: #333;
-}
-
-#root {
-  overflow: auto;
-  min-height: 100px;
-  max-height: 380px;
-}
-
-/* *:focus {
-  outline: none;
-}
-
-input:focus {
-  outline: 1px solid gray;
-} */
-
-section {
-  margin-bottom: 10px;
-}
-
-fieldset {
-  border: none;
-}
-
-button {
-  border: none;
-  cursor: pointer;
-  background-color: transparent;
-}
-
-button:hover {
-  opacity: 1;
-}
-
-button:active {
-  /* opacity: 0.6; */
-  animation-duration: 2s;
-  animation-name: buttonActive;
-}
-
-@keyframes buttonActive {
-  0% { opacity: 0.5; }
-  50% { opacity: 1; }
-  100% { opacity: 0.5; }
-}
-
-h1 {
-  font-size: 48px;
-  font-weight: 400;
-}
-
-h2 {
-  font-size: 36px;
-}
-
-h3 {
-  font-size: 24px;
-}
-
-*:focus:not(:focus-visible) {
-  outline: none;
-}
-
-.display-none {
-  display: none;
-}
-
-/* POSITIONS */
-.relative { position: relative; }
-.absolute { position: absolute; }
-.fixed { position: fixed; }
-.zIndex-1 { z-index: 1; }
-.zIndex-2 { z-index: 2; }
-.zIndex-3 { z-index: 3; }
-.zIndex-4 { z-index: 4; }
-.top-0 { top: 0; }
-.left-0 { left: 0; }
-.right-0 { right: 0; }
-.bottom-0 { bottom: 0; }
-
-/* BORDERS */
-.circle { border-radius: 50%; }
-.rounded { border-radius: 5px; }
-.border-s { border: 1px solid; }
-.border-m { border: 2px solid; }
-.border-l { border: 3px solid; }
-.borderBottom-s { border-bottom: 1px solid; }
-.borderBottom-m { border-bottom: 2px solid; }
-.borderBottom-l { border-bottom: 3px solid; }
-.borderTop-s { border-top: 1px solid; }
-.borderTop-m { border-top: 2px solid; }
-.borderTop-l { border-top: 3px solid; }
-
-/* PALETTE COLORS */
-/* the same order (top -> bottom) than https://colorhunt.co/palette/2763 */
-.background-transparent { background-color: transparent; }
-.background-primary { background-color: #041115; /* #0E0E0F; */ }
-.background-secondary { background-color: #111111; /* #111111; */ }
-.background-contrast { background-color: #eeeeee; }
-.background-alternate { background-color: #00adb5; }
-.color-primary { color: #0E0E0F; }
-.color-secondary { color: #111111; }
-.color-contrast { color: #eeeeee; }
-.color-alternate { color: #00adb5; }
-.color-highlighted { color: #f1c40f; }
-.borderColor-primary { border-color: #0E0E0F; }
-.borderColor-secondary { border-color: #111111; }
-.borderColor-contrast { border-color: #eeeeee; }
-.borderColor-alternate { border-color: #00adb5; }
-.borderColor-black { border-color: black; }
-.borderBottomColor-primary { border-bottom-color: #0E0E0F; }
-.borderBottomColor-secondary { border-bottom-color: #111111; }
-.borderBottomColor-contrast { border-bottom-color: #eeeeee; }
-.borderBottomColor-alternate { border-bottom-color: #00adb5; }
-.beforeBackgroundColor-secondary:before { background-color: #111111; }
-/* COLORS */
-.background-black-2 { background-color: #090909;}
-.background-black { background-color: #000000 ;}
-.background-green { background-color: #27ae60; }
-.background-blue { background-color: #03a9f4; }
-.background-orange { background-color: #d35400; }
-.background-purple { background-color: #8e44ad; }
-.background-yellow { background-color: #f1c40f; }
-.background-red { background-color: #e74c3c; }
-.background-gray { background-color: #607d8b; }
-.background-cyan { background-color: #00bcd4; }
-.background-white { background-color: white; }
-.color-green { color: #27ae60; }
-.color-blue { color: #03a9f4; }
-.color-orange { color: #d35400; }
-.color-purple { color: #8e44ad; }
-.color-yellow { color: #f1c40f; }
-.color-red { color: #e74c3c; }
-.color-gray { color: #607d8b; }
-.color-cyan { color: #00bcd4; }
-.borderColor-green { border-color: #27ae60; }
-.borderColor-blue { border-color: #03a9f4; }
-.borderColor-orange { border-color: #d35400; }
-.borderColor-purple { border-color: #8e44ad; }
-.borderColor-yellow { border-color: #f1c40f; }
-.borderColor-red { border-color: #e74c3c; }
-.borderColor-gray { border-color: #607d8b; }
-.borderColor-cyan { border-color: #00bcd4; }
-.fill-green { fill: #27ae60; }
-.fill-blue { fill: #03a9f4; }
-.fill-orange { fill: #d35400; }
-.fill-purple { fill: #8e44ad; }
-.fill-yellow { fill: #f1c40f; }
-.fill-red { fill: #e74c3c; }
-.fill-gray { fill: #607d8b; }
-.fill-cyan { fill: #00bcd4; }
-.fill-black { fill: #000000; }
-.stroke-green { stroke: #27ae60; }
-.stroke-blue { stroke: #03a9f4; }
-.stroke-orange { stroke: #d35400; }
-.stroke-purple { stroke: #8e44ad; }
-.stroke-yellow { stroke: #f1c40f; }
-.stroke-red { stroke: #e74c3c; }
-.stroke-gray { stroke: #607d8b; }
-.stroke-cyan { stroke: #00bcd4; }
-.stroke-black { stroke: #000000; }
-.textShadow-green { text-shadow: 1px 1px 5px #27ae60; }
-.textShadow-blue { text-shadow: 1px 1px 5px #03a9f4; }
-.textShadow-orange { text-shadow: 1px 1px 5px #d35400; }
-.textShadow-purple { text-shadow: 1px 1px 5px #8e44ad; }
-.textShadow-yellow { text-shadow: 1px 1px 5px #f1c40f; }
-.textShadow-red { text-shadow: 1px 1px 5px #e74c3c; }
-.textShadow-gray { text-shadow: 1px 1px 5px #607d8b; }
-.textShadow-cyan { text-shadow: 1px 1px 5px #00bcd4; }
-
-.gradient-green { background-image: linear-gradient(to right, #56ab2f, #a8e063); }
-.gradient-blue { background-image: linear-gradient(to left, #2a5298, #1e3c72); }
-.gradient-orange { background-color: #d35400; }
-.gradient-purple { background-image: linear-gradient(to left, #a044ff, #6a3093); }
-.gradient-yellow { background-color: #f1c40f; }
-.gradient-red { background-image: linear-gradient(to right, #d31027, #ea384d); }
-.gradient-gray { background-color: #607d8b; }
-.gradient-cyan { background-image: linear-gradient(to right, #0083B0, #00B4DB); }
-.gradient-blackToTransparent { background-image: linear-gradient(to top, #000000, #000000, transparent); }
-
-
-/* STATES */
-.hover .show-in-hover { visibility: hidden; }
-.hover:hover .show-in-hover { visibility: visible; }
-.hover_background-secondary:hover { background-color: #111111; }
-.hover-opacity { opacity: 0.7 ;}
-.hover-opacity:hover { opacity: 1; }
-
-
-/* TEXT */
-.textAlign-center { text-align: center; }
-.textAlign-left { text-align: left; }
-
-
-/* SPACES */
-.padding-none { padding: 0px; }
-.padding-xs { padding: 3px; }
-.padding-s { padding: 8px; }
-.padding-m { padding: 10px; }
-.padding-l { padding: 12px; }
-.padding-xl { padding: 25px; }
-.paddingLeft-none { padding-left: 0px; }
-.paddingLeft-xs { padding-left: 3px; }
-.paddingLeft-s { padding-left: 8px; }
-.paddingLeft-m { padding-left: 10px; }
-.paddingLeft-l { padding-left: 12px; }
-.paddingLeft-xl { padding-left: 15px; }
-.paddingLeftRight-none { padding-right: 0px; padding-left: 0px; }
-.paddingLeftRight-xs { padding-right: 3px; padding-left: 3px; }
-.paddingLeftRight-s { padding-right: 8px; padding-left: 8px; }
-.paddingLeftRight-m { padding-right: 10px; padding-left: 10px; }
-.paddingLeftRight-l { padding-right: 12px; padding-left: 12px; }
-.paddingLeftRight-xl { padding-right: 15px; padding-left: 15px; }
-.paddingTop-none { padding-top: 0px; }
-.paddingTop-xs { padding-top: 3px; }
-.paddingTop-s { padding-top: 8px; }
-.paddingTop-m { padding-top: 10px; }
-.paddingTop-l { padding-top: 12px; }
-.paddingTop-xl { padding-top: 25px; }
-.paddingBottom-none { padding-top: 0px; }
-.paddingBottom-xs { padding-bottom: 3px; }
-.paddingBottom-s { padding-bottom: 8px; }
-.paddingBottom-m { padding-bottom: 10px; }
-.paddingBottom-l { padding-bottom: 12px; }
-.paddingBottom-xl { padding-bottom: 25px; }
-.marginLeft-none { margin-left: 0px; }
-.marginLeft-xs { margin-left: 3px; }
-.marginLeft-s { margin-left: 8px; }
-.marginLeft-m { margin-left: 10px; }
-.marginLeft-l { margin-left: 12px; }
-.marginLeft-xl { margin-left: 15px; }
-.marginRight-none { margin-right: 0px; }
-.marginRight-xs { margin-right: 3px; }
-.marginRight-s { margin-right: 8px; }
-.marginRight-m { margin-right: 10px; }
-.marginRight-l { margin-right: 12px; }
-.marginRight-xl { margin-right: 15px; }
-.marginBottom-none { margin-bottom: 0px; }
-.marginBottom-xs { margin-bottom: 3px; }
-.marginBottom-s { margin-bottom: 8px; }
-.marginBottom-m { margin-bottom: 10px; }
-.marginBottom-l { margin-bottom: 12px; }
-.marginBottom-xl { margin-bottom: 20px; }
-.marginTop-none { margin-top: 0px; }
-.marginTop-xs { margin-top: 3px; }
-.marginTop-s { margin-top: 8px; }
-.marginTop-m { margin-top: 10px; }
-.marginTop-l { margin-top: 12px; }
-.marginTop-xl { margin-top: 15px; }
-.margin-xs { margin: 3px; }
-.margin-s { margin: 8px; }
-.margin-m { margin: 10px; }
-.margin-l { margin: 12px; }
-.margin-xl { margin: 15px; }
-
-/* GRID */
-.grid { display: grid; }
-.gridTemplateCol-2 { grid-template-columns: auto auto; }
-.gridTemplateCol-3 { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
-.gridTemplateCol-repeat-xl { grid-template-columns: repeat(auto-fill, 380px); }
-.gridGap-xs { grid-gap: 12px; }
-.gridGap-s { grid-gap: 30px; }
-.gridGap-m { grid-gap: 50px; }
-.gridGap-l { grid-gap: 80px; }
-.gridGap-xl { grid-gap: 100px; }
-.gridColGap-xs { grid-column-gap: 5px; }
-.gridColGap-s { grid-column-gap: 8px; }
-.gridColGap-m { grid-column-gap: 10px; }
-.gridColGap-l { grid-column-gap: 12px; }
-.gridColGap-xl { grid-column-gap: 15px; }
-
-
-/* FLEXBOX */
-.flex { display: flex; }
-.inline-flex { display: inline-flex; }
-.flexDirection-col { flex-direction: column; }
-.flexDirection-colReverse { flex-direction: column-reverse; }
-.flex-1 { flex: 1; }
-
-.block { display: block; }
-
-/* ALIGNING */
-.alignContent-flexEnd { align-items: flex-end; }
-.alignItems-center { align-items: center; }
-.alignItems-stretch { align-items: stretch; }
-.justifyContent-center { justify-content: center; }
-.justifyContent-space-between { justify-content: space-between; }
-
-/* SIZES */
-.width-0 { width: 0px; }
-.height-0 { height: 0px ;}
-.width-xs { width: 18px; }
-.width-s { width: 28px; }
-.width-m { width: 100px; }
-.width-l { width: 150px; }
-.width-xl { width: 380px ;}
-.height-none { height: 0px ;}
-.height-xs { height: 18px; }
-.height-s { height: 28px; }
-.height-m { height: 80px; }
-.height-l { height: 150px; }
-.height-xl { height: 380px; }
-.height-fit-content { height: fit-content; }
-.full-width { width: 100%; }
-.full-height { height: 100%; }
-.maxHeight-400 { max-height: 400px; }
-
-
-
-.cursor-rocket {
-  cursor: url("../assets/rocket.svg"), auto;
-}
-
-/* https://codepen.io/haderman/pen/GRRrxed?editors=1100 */
-.scroll-shadow {
-  background:
-    linear-gradient(#0E0E0F 30%, hsla(0,0%,100%, 0)),
-    linear-gradient(hsla(0,0%,100%,0) 10px, #0E0E0F 70%) bottom,
-    radial-gradient(at top, rgba(51,51,153, 1) 0%, transparent 70% ),
-    radial-gradient(at bottom, rgba(51,51,153, 1) 40%, transparent 70%) bottom;
-	background-repeat: no-repeat;
-	background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
-
-	/* Opera doesn’t support this in the shorthand */
-	background-attachment: local, local, scroll, scroll;
-}
-
-/* BACKDROPS AND OVERLAYS */
-.backdrop { position: relative; }
-.backdrop::before {
-  content: "";
-  width: inherit;
-  height: inherit;
-  border-radius: inherit;
-  background: black;
-  position: absolute;
-  opacity: 0.7;
-}
-
-.blur {
-  position: relative; }
-
-  .blur::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    background: ghostwhite;
-    filter: blur(7px);
-    opacity: 0.4;
-  }
-
-.hover-boxShadow:hover {
-  box-shadow: 0px 0px 24px 1px dimgrey;
-}
-
-.boxShadow-black { box-shadow: 0px 0px 10px 0px black; }
-
-.filter-blur { filter: blur(5px); }
-.backdrop-filter-blur { backdrop-filter: blur(10px); }
-.filter-shadow { filter: url(#filter-shadow); }
-
-.support-backdrop-filter-header {
-  height: 105px;
-  width: 160px;
-  left: 20px;
-  border-bottom-left-radius: 36px;
-  border-bottom-right-radius: 36px;
-}
-
-
-/* TEMPORAL PARA RADIO BUTTONS */
-/* Customize the label (the radioLabel) */
-.radioLabel {
-  display: block;
-  position: relative;
-  padding-left: 29px;
-  margin-bottom: 25px;
-  cursor: pointer;
-  font-size: 22px;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none; }
-
-  /* Hide the browser's default radio button */
-  .radioLabel input {
-    position: absolute;
-    opacity: 0;
-    cursor: pointer;
-    height: 0;
-    width: 0;
-  }
-
-  /* Create a custom radio button */
-  .checkmark {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 18px;
-    width: 18px;
-    border-radius: 50%;
-  }
-
-  /* On mouse-over, add a grey background color */
-  .radioLabel:hover input ~ .checkmark {
-    opacity: 0.7;
-  }
-
-  /* Create the indicator (the dot/circle - hidden when not checked) */
-  .checkmark:after {
-    content: "";
-    position: absolute;
-    display: none;
-  }
-
-  /* Show the indicator (dot/circle) when checked */
-  .radioLabel input:checked ~ .checkmark:after {
-    display: block;
-  }
-
-  /* Style the indicator (dot/circle) */
-  .radioLabel .checkmark:after {
-    top: -3px;
-    left: -3px;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: transparent;
-    border: 1px solid white;
-  }
-
-.filter-gooey { filter: url(#gooey); }
-
-
-/* Golden Section */
-.golden { z-index: 999999999999999; }
-.golden div { outline: 1px solid darkgoldenrod; }
-
-
-
-
-
-/*
-
-VERSION - 2
-
-*/
-
 :root {
   --view-width: 280px;
 
@@ -489,15 +30,15 @@ VERSION - 2
   --color-deep-4: hsl(240, 1%, 33%);
   --color-deep-5: hsl(240, 2%, 49%);
   --color-deep-6: hsl(240, 3%, 69%);
-  --color-a: hsl(210, var(--saturation), var(--lightness));
-  --color-b: hsl(110, var(--saturation), var(--lightness));
-  --color-c: hsl(241, var(--saturation), var(--lightness));
-  --color-d: hsl(36, var(--saturation), var(--lightness));
-  --color-e: hsl(348, var(--saturation), var(--lightness));
-  --color-f: hsl(280, var(--saturation), var(--lightness));
-  --color-g: hsl(3, var(--saturation), var(--lightness));
-  --color-h: hsl(185, var(--saturation), var(--lightness));
-  --color-i: hsl(50, var(--saturation), var(--lightness));
+  --color-a: hsl(358, 69%, 59%);
+  --color-b: hsl(23, 70%, 54%);
+  --color-c: hsl(99, 40%, 44%);
+  --color-d: hsl(163, 39%, 45%);
+  --color-e: hsl(215, 44%, 57%);
+  --color-f: hsl(262, 51%, 60%);
+  --color-g: hsl(297, 42%, 59%);
+  --color-h: hsl(212, 10%, 48%);
+  --color-i: hsl(7, 7%, 50%);
 }
 
 /* light theme */
@@ -518,15 +59,15 @@ VERSION - 2
   --color-deep-3: hsl(240, 3%, 69%);
   --color-deep-4: hsl(240, 2%, 57%);
   --color-deep-5: hsl(240, 2%, 43%);
-  --color-a: hsl(210, var(--saturation), var(--lightness));
-  --color-b: hsl(135, var(--saturation), var(--lightness));
-  --color-c: hsl(241, var(--saturation), var(--lightness));
-  --color-d: hsl(36, var(--saturation), var(--lightness));
-  --color-e: hsl(348, var(--saturation), var(--lightness));
-  --color-f: hsl(280, var(--saturation), var(--lightness));
-  --color-g: hsl(3, var(--saturation), var(--lightness));
-  --color-h: hsl(185, var(--saturation), var(--lightness));
-  --color-i: hsl(50, var(--saturation), var(--lightness));
+  --color-a: hsl(358, 69%, 59%);
+  --color-b: hsl(23, 70%, 54%);
+  --color-c: hsl(99, 40%, 44%);
+  --color-d: hsl(163, 39%, 45%);
+  --color-e: hsl(215, 44%, 57%);
+  --color-f: hsl(262, 51%, 60%);
+  --color-g: hsl(297, 42%, 59%);
+  --color-h: hsl(212, 10%, 48%);
+  --color-i: hsl(7, 7%, 50%);
 }
 
 .compact {
@@ -723,7 +264,19 @@ VERSION - 2
 *:before {
   box-sizing: border-box;
   margin: 0;
+  padding: 0;
 }
+
+html {
+  background-color: #333;
+}
+
+h1 {
+  font-size: 48px;
+  font-weight: 400;
+}
+h2 { font-size: 36px; }
+h3 { font-size: 24px; }
 
 input[type=text] {
   position: relative;
@@ -761,7 +314,27 @@ body.newtab .root {
   overflow: auto;
 }
 
+button {
+  border: none;
+  cursor: pointer;
+  background-color: transparent;
+}
 
+button:hover {
+  opacity: 1;
+}
+
+button:active {
+  /* opacity: 0.6; */
+  animation-duration: 2s;
+  animation-name: buttonActive;
+}
+
+@keyframes buttonActive {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
 
 ul {
   list-style-type: none;
@@ -923,3 +496,115 @@ kbd {
   cursor: not-allowed;
   opacity: 0.5;
 }
+
+
+.show-in-hover {
+  display: none;
+}
+
+.card:hover .show-in-hover {
+  display: flex;
+}
+
+.backdrop-filter-blur { backdrop-filter: blur(10px); }
+
+
+
+/* BORDERS */
+.circle { border-radius: 50%; }
+.rounded { border-radius: 5px; }
+.border-s { border: 1px solid; }
+.border-m { border: 2px solid; }
+.border-l { border: 3px solid; }
+
+/* STATES */
+.hover .show-in-hover { visibility: hidden; }
+.hover:hover .show-in-hover { visibility: visible; }
+.hover_background-secondary:hover { background-color: #111111; }
+.hover-opacity { opacity: 0.7 ;}
+.hover-opacity:hover { opacity: 1; }
+
+
+/* GRID */
+.grid { display: grid; }
+.gridTemplateCol-2 { grid-template-columns: auto auto; }
+.gridTemplateCol-3 { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+.gridTemplateCol-repeat-xl { grid-template-columns: repeat(auto-fill, 380px); }
+.gridGap-xs { grid-gap: 12px; }
+.gridGap-s { grid-gap: 30px; }
+.gridGap-m { grid-gap: 50px; }
+.gridGap-l { grid-gap: 80px; }
+.gridGap-xl { grid-gap: 100px; }
+.gridColGap-xs { grid-column-gap: 5px; }
+.gridColGap-s { grid-column-gap: 8px; }
+.gridColGap-m { grid-column-gap: 10px; }
+.gridColGap-l { grid-column-gap: 12px; }
+.gridColGap-xl { grid-column-gap: 15px; }
+
+
+/* TEMPORAL PARA RADIO BUTTONS */
+/* Customize the label (the radioLabel) */
+.radioLabel {
+  display: block;
+  position: relative;
+  padding-left: 29px;
+  margin-bottom: 25px;
+  cursor: pointer;
+  font-size: 22px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Hide the browser's default radio button */
+.radioLabel input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+/* Create a custom radio button */
+.checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+}
+
+/* On mouse-over, add a grey background color */
+.radioLabel:hover input ~ .checkmark {
+  opacity: 0.7;
+}
+
+/* Create the indicator (the dot/circle - hidden when not checked) */
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+/* Show the indicator (dot/circle) when checked */
+.radioLabel input:checked ~ .checkmark:after {
+  display: block;
+}
+
+/* Style the indicator (dot/circle) */
+.radioLabel .checkmark:after {
+  top: -3px;
+  left: -3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid white;
+}
+
+/* Golden Section */
+.golden { z-index: 999999999999999; }
+.golden div { outline: 1px solid darkgoldenrod; }
+

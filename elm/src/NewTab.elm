@@ -18,8 +18,7 @@ import Workspace exposing (Workspace)
 -- MAIN
 
 
--- change () by Flags if it's required
-main : Program () Model Msg
+main : Program Flags Model Msg
 main =
     Browser.element
         { init = init
@@ -31,6 +30,10 @@ main =
 
 
 -- MODEL
+
+
+type alias Flags =
+    ()
 
 
 type CardStatus
@@ -80,7 +83,7 @@ initModel =
     }
 
 
-init : () -> ( Model, Cmd Msg )
+init : Flags -> ( Model, Cmd Msg )
 init _ =
     ( initModel, Cmd.none )
 
@@ -432,34 +435,42 @@ viewCard workspacesInfo ( workspaceId, cardStatus ) =
 
 
 viewShowingCard : Workspace -> Html Msg
-viewShowingCard { id, name, color, tabs } =
+viewShowingCard workspace =
     let
         header =
             let
                 viewName =
                     h3
                         [ class "font-weight-200 text-primary-high-contrast" ]
-                        [ text name ]
+                        [ text workspace.name ]
 
                 buttonStyle =
-                    class <|
-                        String.join " "
-                            [ "width-s"
-                            , "height-s"
-                            , "circle"
-                            , "gutter-bottom-xs"
-                            , "color-contrast"
-                            , "show-in-hover"
-                            , "inline-flex"
-                            , "justify-center"
-                            , "align-center"
-                            ]
+                    String.join " "
+                        [ "width-s"
+                        , "height-s"
+                        , "circle"
+                        , "gutter-bottom-xs"
+                        , "color-contrast"
+                        , "inline-flex"
+                        , "justify-center"
+                        , "align-center"
+                        ]
 
                 actions =
-                    div []
+                    div [ class "show-in-hover" ]
                         [ button
-                            [ buttonStyle
-                            , customOnClick <| PressedEditButton id
+                            [ class <| buttonStyle ++ " gutter-right-s"
+                            , customOnClick <| OpenWorkspace workspace.id
+                            ]
+                            [ img
+                                [ class "height-xs width-xs hover-opacity"
+                                , src "/assets/icons/globe.svg"
+                                ]
+                                []
+                            ]
+                        , button
+                            [ class <| buttonStyle
+                            , customOnClick <| PressedEditButton workspace.id
                             ]
                             [ img
                                 [ class "height-xs width-xs hover-opacity"
@@ -469,18 +480,15 @@ viewShowingCard { id, name, color, tabs } =
                             ]
                         ]
             in
-            div [ class <| "squish-inset-m flex align-center justify-space-between " ++ MyColor.toBackgroundCSS color ]
+            div [ class <| "squish-inset-m flex align-center justify-space-between " ++ MyColor.toBackgroundCSS workspace.color ]
                 [ viewName
                 , actions
                 ]
 
         body =
-            div [ class "padding-m opacity-70" ] <| List.map viewTab tabs
+            div [ class "inset-m opacity-70" ] <| List.map viewTab workspace.tabs
     in
-    div
-        [ class "rounded overflow-hidden height-fit-content gutter-bottom-xl background-deep-1"
-        , Events.onClick <| OpenWorkspace id
-        ]
+    div [ class "rounded overflow-hidden height-fit-content gutter-bottom-xl background-deep-1 card" ]
         [ header
         , body
         ]
@@ -512,7 +520,6 @@ viewEditingCard workspace =
                         , "height-s"
                         , "circle"
                         , "color-contrast"
-                        , "show-in-hover"
                         , "inline-flex"
                         , "justify-center"
                         , "align-center"

@@ -283,7 +283,7 @@ viewListWokspaceEmptyState =
                     []
                 ]
     in
-    div [ class <| "flex column flex-1 justify-center align-center" ]
+    div [ class "flex column flex-1 justify-center align-center" ]
         [ title
         , thumbnail
         ]
@@ -440,8 +440,7 @@ viewShowingCard workspace =
         header =
             let
                 viewName =
-                    h3
-                        [ class "font-weight-200 text-primary-high-contrast" ]
+                    h3 [ class "font-weight-200 text-primary-high-contrast" ]
                         [ text workspace.name ]
 
                 buttonStyle =
@@ -484,23 +483,16 @@ viewShowingCard workspace =
                 [ viewName
                 , actions
                 ]
-
-        body =
-            div [ class "inset-m opacity-70" ] <| List.map viewTab workspace.tabs
     in
-    div [ class "rounded overflow-hidden height-fit-content gutter-bottom-xl background-deep-1 card" ]
+    div [ class "rounded overflow-hidden height-fit-content gutter-bottom-xl background-deep-1 show-in-hover-parent" ]
         [ header
-        , body
+        , viewTabList workspace.tabs
         ]
 
 
 viewEditingCard : Workspace -> Html Msg
 viewEditingCard workspace =
     let
-        body =
-            div [ class "inset-m" ] <|
-                List.map viewTab workspace.tabs
-
         header =
             let
                 inputName =
@@ -569,7 +561,7 @@ viewEditingCard workspace =
         , Events.onClick NoOp
         ]
         [ header
-        , body
+        , viewTabList workspace.tabs
         ]
 
 
@@ -604,16 +596,44 @@ viewRadioGroupMyColors workspaceId colorSelected =
         List.map radio MyColor.list
 
 
+viewTabList : List Workspace.Tab -> Html Msg
+viewTabList tabs =
+    ul [ class "inset-s" ] <|
+        List.map viewTab tabs
+
+
 viewTab : Workspace.Tab -> Html Msg
-viewTab {title, icon} =
-    div [ class "flex align-center gutter-bottom-s" ]
+viewTab tab =
+    let
+        buttonStyle =
+            String.join " "
+                [ "width-xs"
+                , "height-xs"
+                , "circle"
+                , "color-contrast"
+                , "inline-flex"
+                , "justify-center"
+                , "align-center"
+                ]
+    in
+    li [ class "flex rounded align-center inset-s show-in-hover-inner-parent hover-background-deep-2" ]
         [ img
-            [ src <| Maybe.withDefault "" icon
+            [ src <| Maybe.withDefault "" tab.icon
             , class "width-xs height-xs gutter-right-s"
             ]
             []
-        , span [ class "flex-1 truncate overflow-hidden text-primary" ]
-            [ text title ]
+        , span [ class "flex-1 truncate text-primary gutter-right-s" ]
+            [ text tab.title ]
+        , a
+            [ class <| buttonStyle ++ " show-in-hover-inner"
+            , href tab.url
+            ]
+            [ img
+                [ class "height-xs width-xs hover-opacity"
+                , src "/assets/icons/globe.svg"
+                ]
+                []
+            ]
         ]
 
 

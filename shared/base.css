@@ -155,6 +155,7 @@
 .truncate {
   text-overflow: ellipsis;
   white-space: nowrap;
+  overflow: hidden;
 }
 .text-primary { color: var(--text-primary); }
 .text-primary-high-contrast { color: var(--text-primary-high-contrast); }
@@ -312,6 +313,7 @@ body.newtab .root {
   display: flex;
   flex-direction: column;
   overflow: auto;
+  position: relative;
 }
 
 button {
@@ -336,9 +338,7 @@ button:active {
   100% { opacity: 0.5; }
 }
 
-ul {
-  list-style-type: none;
-}
+ul { list-style-type: none; }
 
 img.dynamic { filter: contrast(0.2); }
 .light img.dynamic { filter: invert(1); }
@@ -497,14 +497,11 @@ kbd {
   opacity: 0.5;
 }
 
+.show-in-hover-parent:hover .show-in-hover { display: flex; }
+.show-in-hover { display: none; }
+.show-in-hover-inner-parent:hover .show-in-hover-inner { display: flex; }
+.show-in-hover-inner { display: none; }
 
-.show-in-hover {
-  display: none;
-}
-
-.card:hover .show-in-hover {
-  display: flex;
-}
 
 .backdrop-filter-blur { backdrop-filter: blur(10px); }
 
@@ -518,11 +515,15 @@ kbd {
 .border-l { border: 3px solid; }
 
 /* STATES */
-.hover .show-in-hover { visibility: hidden; }
-.hover:hover .show-in-hover { visibility: visible; }
-.hover_background-secondary:hover { background-color: #111111; }
 .hover-opacity { opacity: 0.7 ;}
 .hover-opacity:hover { opacity: 1; }
+.hover-background-deep-0:hover { background-color: var(--color-deep-0); }
+.hover-background-deep-1:hover { background-color: var(--color-deep-1); }
+.hover-background-deep-2:hover { background-color: var(--color-deep-2); }
+.hover-background-deep-3:hover { background-color: var(--color-deep-3); }
+.hover-background-deep-4:hover { background-color: var(--color-deep-4); }
+.hover-background-deep-5:hover { background-color: var(--color-deep-5); }
+.hover-background-deep-6:hover { background-color: var(--color-deep-6); }
 
 
 /* GRID */

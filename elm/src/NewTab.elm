@@ -9,8 +9,10 @@ import Html.Events as Events
 import Json.Decode as Decode exposing (..)
 import MyColor exposing (MyColor)
 import Ports
+import Size exposing (Size)
 import Task
 import Theme exposing (Theme)
+import View.Icon
 import Workspace exposing (Workspace)
 
 
@@ -448,7 +450,6 @@ viewShowingCard workspace =
                         [ "width-s"
                         , "height-s"
                         , "circle"
-                        , "gutter-bottom-xs"
                         , "color-contrast"
                         , "inline-flex"
                         , "justify-center"
@@ -461,22 +462,12 @@ viewShowingCard workspace =
                             [ class <| buttonStyle ++ " gutter-right-s"
                             , customOnClick <| OpenWorkspace workspace.id
                             ]
-                            [ img
-                                [ class "height-xs width-xs hover-opacity"
-                                , src "/assets/icons/globe.svg"
-                                ]
-                                []
-                            ]
+                            [ View.Icon.openTab Size.XS ]
                         , button
                             [ class <| buttonStyle
                             , customOnClick <| PressedEditButton workspace.id
                             ]
-                            [ img
-                                [ class "height-xs width-xs hover-opacity"
-                                , src "/assets/icons/pencil.svg"
-                                ]
-                                []
-                            ]
+                            [ View.Icon.edit Size.XS ]
                         ]
             in
             div [ class <| "squish-inset-m flex align-center justify-space-between " ++ MyColor.toBackgroundCSS workspace.color ]
@@ -525,32 +516,17 @@ viewEditingCard workspace =
                             [ class <| buttonStyle ++ " gutter-right-s"
                             , customOnClick <| PressedDeleteButton workspace.id
                             ]
-                            [ img
-                                [ class "height-s width-s dynamic hover-opacity"
-                                , src "/assets/icons/trash.svg"
-                                ]
-                                []
-                            ]
+                            [ View.Icon.delete Size.XS ]
                         , button
                             [ class <| buttonStyle ++ " gutter-right-s"
                             , customOnClick <| PressedSaveButton workspace
                             ]
-                            [ img
-                                [ class "height-s width-s dynamic hover-opacity"
-                                , src "/assets/icons/save.svg"
-                                ]
-                                []
-                            ]
+                            [ View.Icon.save Size.XS ]
                         , button
                             [ class buttonStyle
                             , customOnClick <| PressedCancelButton workspace.id
                             ]
-                            [ img
-                                [ class "height-s width-s dynamic hover-opacity"
-                                , src "/assets/icons/close.svg"
-                                ]
-                                []
-                            ]
+                            [ View.Icon.close Size.XS ]
                         ]
                     ]
                 , viewRadioGroupMyColors workspace.id workspace.color
@@ -628,12 +604,7 @@ viewTab tab =
             [ class <| buttonStyle ++ " show-in-hover-inner"
             , href tab.url
             ]
-            [ img
-                [ class "height-xs width-xs hover-opacity"
-                , src "/assets/icons/globe.svg"
-                ]
-                []
-            ]
+            [ View.Icon.openTab Size.XS ]
         ]
 
 

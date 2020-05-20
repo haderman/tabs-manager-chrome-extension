@@ -196,13 +196,6 @@
 .background-h { background-color: var(--color-h); }
 .background-i { background-color: var(--color-i); }
 .background-interactive { background-color: var(--color-interactive); }
-.border-deep-0 { border-color: var(--color-deep-0); }
-.border-deep-1 { border-color: var(--color-deep-1); }
-.border-deep-2 { border-color: var(--color-deep-2); }
-.border-deep-3 { border-color: var(--color-deep-3); }
-.border-deep-4 { border-color: var(--color-deep-4); }
-.border-deep-5 { border-color: var(--color-deep-5); }
-.border-deep-6 { border-color: var(--color-deep-6); }
 
 
 /* LAYOUTS */
@@ -340,8 +333,20 @@ button:active {
 
 ul { list-style-type: none; }
 
-img.dynamic { filter: contrast(0.2); }
-.light img.dynamic { filter: invert(1); }
+i > img { filter: contrast(0.2); }
+.light i > img { filter: invert(1); }
+.background-a i > img,
+.background-b i > img,
+.background-c i > img,
+.background-d i > img,
+.background-e i > img,
+.background-f i > img,
+.background-g i > img,
+.background-h i > img,
+.background-i i > img {
+  filter: none;
+}
+
 
 img::before {
   content: ' ';
@@ -513,6 +518,14 @@ kbd {
 .border-s { border: 1px solid; }
 .border-m { border: 2px solid; }
 .border-l { border: 3px solid; }
+.border-deep-0 { border-color: var(--color-deep-0); }
+.border-deep-1 { border-color: var(--color-deep-1); }
+.border-deep-2 { border-color: var(--color-deep-2); }
+.border-deep-3 { border-color: var(--color-deep-3); }
+.border-deep-4 { border-color: var(--color-deep-4); }
+.border-deep-5 { border-color: var(--color-deep-5); }
+.border-deep-6 { border-color: var(--color-deep-6); }
+
 
 /* STATES */
 .hover-opacity { opacity: 0.7 ;}

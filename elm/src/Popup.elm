@@ -11,8 +11,10 @@ import Html.Attributes exposing (..)
 import Html.Events as Events exposing (onClick, onFocus, onBlur, onInput, onSubmit)
 import Json.Decode as Decode exposing (..)
 import Ports
+import Size exposing (Size)
 import Task
 import Theme exposing (Theme)
+import View.Icon
 import Workspace exposing (Workspace)
 
 
@@ -410,28 +412,16 @@ viewHeader theme =
                     , onBlur ElementBlurred
                     , class "circle inline-flex justify-center align-center focus-border gutter-right-m"
                     ]
-
-                imgStyle =
-                    "height-s width-s dynamic"
             in
             case theme of
                 Theme.Dark ->
                     button
                         (buttonAttrs <| ChangeTheme Theme.Light)
-                        [ img
-                            [ class imgStyle
-                            , src "/assets/icons/moon.svg"
-                            ]
-                            []
-                        ]
+                        [ View.Icon.moon Size.S ]
                 Theme.Light ->
                     button
                         (buttonAttrs <| ChangeTheme Theme.Dark)
-                        [ img
-                            [ class imgStyle
-                            , src "/assets/icons/sun.svg"
-                            ]
-                            []
+                        [ View.Icon.sun Size.S
                         ]
 
         addShorcutLink =
@@ -443,7 +433,8 @@ viewHeader theme =
                 , onFocus <| ElementFocused AddShortcutLinkFocused
                 , onBlur ElementBlurred
                 ]
-                [ text "Add shortcut" ]
+                [ text "Add shortcut"
+                ]
 
         settingsLink =
             a
@@ -454,11 +445,7 @@ viewHeader theme =
                 , onBlur ElementBlurred
                 , class "circle inline-flex justify-center align-center focus-border"
                 ]
-                [ img
-                    [ class "height-s width-s dynamic"
-                    , src "/assets/icons/cog.svg"
-                    ]
-                    []
+                [ View.Icon.settings Size.S
                 ]
     in
     header [ class "inset-m flex align-center justify-end" ]
@@ -472,11 +459,13 @@ viewWorkspaceInUse workspaceId data =
     let
         viewNumTabs =
             p [ class "text-secondary-high-contrast gutter-right-m" ]
-                [ text <| String.fromInt data.numTabsInUse ++ " Tabs" ]
+                [ text <| String.fromInt data.numTabsInUse ++ " Tabs"
+                ]
 
         viewName name =
             p [ class "text-primary-high-contrast text-l" ]
-                [ text name ]
+                [ text name
+                ]
 
         viewButton =
             button
@@ -486,11 +475,7 @@ viewWorkspaceInUse workspaceId data =
                 , class "circle focus-border height-s width-s contrast"
                 , tabindex 1
                 ]
-                [ img
-                    [ class "height-s width-s"
-                    , src "/assets/icons/close.svg"
-                    ]
-                    []
+                [ View.Icon.close Size.S
                 ]
     in
     case Dict.get workspaceId data.workspacesInfo of
@@ -634,11 +619,7 @@ viewForm formStatus data =
                 , tabindex 1
                 , type_ "button"
                 ]
-                [ img
-                    [ class "height-s width-s dynamic"
-                    , src "/assets/icons/arrow-right.svg"
-                    ]
-                    []
+                [ View.Icon.arrowRight Size.S
                 ]
 
         helpContainerStyle =
@@ -768,11 +749,7 @@ viewFooter =
             , onBlur ElementBlurred
             , class "hover-opacity circle inline-flex justifyContent-center alignItems-center focus-border"
             ]
-            [ img
-                [ class "height-s width-s dynamic"
-                , src "/assets/icons/github.svg"
-                ]
-                []
+            [ View.Icon.github Size.S
             ]
         ]
 
@@ -788,46 +765,22 @@ keyBox =
 
 enterKey : Html Msg
 enterKey =
-    keyBox [
-        img [ class "height-xs width-xs dynamic"
-            , src "/assets/icons/enter.svg"
-            , alt "enter key"
-            ]
-            []
-    ]
+    keyBox [ View.Icon.enter Size.XS ]
 
 
 arrowLeftKey : Html Msg
 arrowLeftKey =
-    keyBox [
-        img [ class "height-xs width-xs dynamic"
-            , src "/assets/icons/arrow-left.svg"
-            , alt "arrow left key"
-            ]
-            []
-    ]
+    keyBox [ View.Icon.arrowLeft Size.XS ]
 
 
 arrowRightKey : Html Msg
 arrowRightKey =
-    keyBox [
-        img [ class "height-xs width-xs dynamic"
-            , src "/assets/icons/arrow-right.svg"
-            , alt "arrow right key"
-            ]
-            []
-    ]
+    keyBox [ View.Icon.arrowRight Size.XS ]
 
 
 backspaceKey : Html Msg
 backspaceKey =
-    keyBox [
-        img [ class "height-xs width-xs dynamic"
-            , src "/assets/icons/backspace.svg"
-            , alt "arrow left key"
-            ]
-            []
-    ]
+    keyBox [ View.Icon.backspace Size.XS ]
 
 
 

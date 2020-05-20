@@ -346,8 +346,6 @@ i > img { filter: contrast(0.2); }
 .background-i i > img {
   filter: none;
 }
-
-
 img::before {
   content: ' ';
   position: absolute;

@@ -591,13 +591,23 @@ viewTab tab =
                 , "justify-center"
                 , "align-center"
                 ]
+
+        tabIcon =
+            case tab.icon of
+                Just string ->
+                    img
+                        [ src string
+                        , class "width-xs height-xs gutter-right-s"
+                        ]
+                        []
+
+                Nothing ->
+                    span [ class "gutter-right-s" ]
+                        [ View.Icon.imageAlt Size.XS ]
+
     in
     li [ class "flex rounded align-center inset-s show-in-hover-inner-parent hover-background-deep-2" ]
-        [ img
-            [ src <| Maybe.withDefault "" tab.icon
-            , class "width-xs height-xs gutter-right-s"
-            ]
-            []
+        [ tabIcon
         , span [ class "flex-1 truncate text-primary gutter-right-s" ]
             [ text tab.title ]
         , a

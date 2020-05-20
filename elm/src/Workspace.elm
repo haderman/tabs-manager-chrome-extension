@@ -58,7 +58,18 @@ tabDecoder =
     D.map3 Tab
         (D.field "title" D.string)
         (D.field "url" D.string)
-        (D.maybe <| D.field "favIconUrl" D.string)
+        (D.field "favIconUrl" D.string
+            |> D.maybe
+            |> D.map (replaceEmptyStringToNothing << Maybe.withDefault "")
+        )
+
+
+replaceEmptyStringToNothing : String -> Maybe String
+replaceEmptyStringToNothing string =
+    if String.isEmpty string then
+        Nothing
+    else
+        Just string
 
 
 

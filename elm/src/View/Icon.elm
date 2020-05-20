@@ -12,6 +12,7 @@ module View.Icon exposing
     , arrowLeft
     , backspace
     , enter
+    , imageAlt
     )
 
 
@@ -86,6 +87,11 @@ enter =
     icon "enter"
 
 
+imageAlt : Size -> Html msg
+imageAlt =
+    icon "image-alt-slash"
+
+
 
 -- INTERNALS
 
@@ -99,15 +105,16 @@ icon name size =
         sufix =
             Size.toString size
 
-        height =
-            "height-" ++ sufix
+        imgClass =
+            "height-" ++ sufix ++ " " ++ "width-" ++ sufix
 
-        width =
-            "width-" ++ sufix
+        iClass =
+            "inline-flex justify-center align-center"
+
     in
-    Html.i [ Attributes.class "inline-flex justify-center align-center" ]
+    Html.i [ Attributes.class iClass ]
         [ Html.img
-            [ Attributes.class <| width ++ " " ++ height
+            [ Attributes.class imgClass
             , Attributes.src src
             , Attributes.alt <| composeAltText name
             ]

@@ -1,3 +1,8 @@
+import ChromePromise from "./chrome-promise.js";
+import * as fp from "./fp.js";
+
+const chromePromise = new ChromePromise();
+
 /**
  * @typedef {Object} Workspace
  * @property {string} name name of workspace
@@ -17,24 +22,24 @@ const api = {
      */
     save: ({ id, name, color }, tabs) =>
       api.Workspaces.getIds()
-        .then(ids => {
+        .then((ids) => {
           const id_ = id === undefined ? generateId(ids) : id;
           return [
             id_,
             {
               [id_]: { tabs, name, color, id: id_ },
-              __workspaces_ids__: [id_, ...ids].filter(onlyUnique)
-            }
-          ]
+              __workspaces_ids__: [id_, ...ids].filter(fp.onlyUnique),
+            },
+          ];
         })
         .then(async ([id, data]) => {
           await chromePromise.storage.sync.set(data);
           return [id, data];
         }),
-    async remove (id) {
+    async remove(id) {
       await chromePromise.storage.sync.remove(id.toString());
       const ids = await api.Workspaces.getIds();
-      const filteredIds = ids.filter(id_ => id !== id_);
+      const filteredIds = ids.filter((id_) => id !== id_);
       await chromePromise.storage.sync.set({ __workspaces_ids__: filteredIds });
       return filteredIds;
     },
@@ -44,60 +49,62 @@ const api = {
       }
 
       const data = {
-        [id]: { tabs, name, color, id: id }
+        [id]: { tabs, name, color, id: id },
       };
 
       await chromePromise.storage.sync.set(data);
       return [id, data];
     },
-    get: id =>
+    get: (id) =>
       chromePromise.storage.sync.get(id.toString())
-        .then(prop(id)),
+        .then(fp.prop(id)),
 
     getIds: () =>
-      chromePromise.storage.sync.get('__workspaces_ids__')
-        .then(prop('__workspaces_ids__'))
-        .then(defaultTo([])),
+      chromePromise.storage.sync.get("__workspaces_ids__")
+        .then(fp.prop("__workspaces_ids__"))
+        .then(fp.defaultTo([])),
   },
   Tabs: {
-    get: windowId =>
+    get: (windowId) =>
       chromePromise.tabs.query({ windowId })
-        .then(map(pick(['title', 'url', 'favIconUrl', 'id']))),
+        .then(fp.map(fp.pick(["title", "url", "favIconUrl", "id"]))),
 
     getCurrentWindow: () =>
       chromePromise.tabs.query({ currentWindow: true })
-        .then(map(pick(['title', 'url', 'favIconUrl']))),
+        .then(fp.map(fp.pick(["title", "url", "favIconUrl"]))),
 
-    remove: arrOfTabsIds =>
-      chromePromise.tabs.remove(arrOfTabsIds),
+    remove: (arrOfTabsIds) => chromePromise.tabs.remove(arrOfTabsIds),
 
-    create: tabs =>
+    create: (tabs) =>
       Array.isArray(tabs)
-        ? Promise.all(tabs.map(tab => chromePromise.tabs.create(tab)))
+        ? Promise.all(tabs.map((tab) => chromePromise.tabs.create(tab)))
         : chromePromise.tabs.create(tab),
   },
   Windows: {
-    getAll: () =>
-      chromePromise.windows.getAll()
+    getAll: () => chromePromise.windows.getAll(),
   },
   Settings: {
-    _set: async newSettings => {
+    _set: async (newSettings) => {
       const settings = await api.Settings.get();
-      await chromePromise.storage.sync.set({ __settings__: { ...settings, ...newSettings } });
+      await chromePromise.storage.sync.set(
+        { __settings__: { ...settings, ...newSettings } },
+      );
       return api.Settings.get();
     },
     get: () => {
-      return chromePromise.storage.sync.get('__settings__')
-        .then(prop('__settings__'))
-        .then(defaultTo({ theme: 'dark' }));
+      return chromePromise.storage.sync.get("__settings__")
+        .then(fp.prop("__settings__"))
+        .then(fp.defaultTo({ theme: "dark" }));
     },
-    setTheme: theme => {
+    setTheme: (theme) => {
       return api.Settings._set({ theme });
-    }
-  }
+    },
+  },
 };
 
 function generateId(idsInUse = []) {
   if (idsInUse.length === 0) return 1;
   else return Math.max(...idsInUse) + 1;
 }
+
+export default api;

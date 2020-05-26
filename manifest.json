@@ -1,6 +1,6 @@
 {
   "name": "Woki",
-  "version": "0.01",
+  "version": "0.1",
   "description": "Manage your tabs with workspaces",
   "permissions": [
     "tabs",
@@ -8,19 +8,15 @@
   ],
   "background": {
     "scripts": [
-      "background/chrome-promise.js",
-      "shared/fp.js",
-      "shared/logger.js",
-      "background/api.js",
-      "background/background.js"
+      "background.bundle.js"
     ],
     "persistent": true
   },
   "browser_action": {
-    "default_popup": "popup/popup.html"
+    "default_popup": "src/popup/popup.html"
   },
   "chrome_url_overrides" : {
-    "newtab": "newtab/newtab.html"
+    "newtab": "src/newtab/newtab.html"
   },
   "icons": {
     "16": "assets/woki_logo_16px.png",

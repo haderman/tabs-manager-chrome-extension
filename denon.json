@@ -1,0 +1,19 @@
+{
+  "$schema": "https://deno.land/x/denon/schema.json",
+  "scripts": {
+    "start": "deno bundle src/background/index.js background.bundle.js"
+  },
+  "watcher": {
+    "exts": [
+      "js",
+      "ts",
+      "json"
+    ],
+    "match": [
+      "src/background/*"
+    ],
+    "skip": [
+      "*/.git/*"
+    ]
+  }
+}

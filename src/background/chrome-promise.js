@@ -6,13 +6,15 @@
  * Released under the MIT license
  */
 
-(function(root, factory) {
-  if (typeof exports === 'object') {
+let document = window?.document || {};
+
+(function (root, factory) {
+  if (typeof exports === "object") {
     // Node. Does not work with strict CommonJS, but
     // only CommonJS-like environments that support module.exports,
     // like Node.
     module.exports = factory(this || root);
-  } else if (typeof define === 'function' && define.amd) {
+  } else if (typeof define === "function" && define.amd) {
     // AMD. Register as an anonymous module.
     define([], factory.bind(null, this || root));
   } else {
@@ -26,10 +28,10 @@
       }
     }
   }
-}(typeof self !== 'undefined' ? self : this, function(root) {
-  'use strict';
+}(typeof self !== "undefined" ? self : this, function (root) {
+  "use strict";
   var slice = Array.prototype.slice,
-      hasOwnProperty = Object.prototype.hasOwnProperty;
+    hasOwnProperty = Object.prototype.hasOwnProperty;
 
   // Temporary hacky fix to make TypeScript `import` work
   ChromePromise.default = ChromePromise;
@@ -44,7 +46,7 @@
     var Promise = options.Promise || root.Promise;
     var runtime = chrome.runtime;
     var self = this;
-    if (!self) throw new Error('ChromePromise must be called with new keyword');
+    if (!self) throw new Error("ChromePromise must be called with new keyword");
 
     fillProperties(chrome, self);
 
@@ -55,11 +57,10 @@
     ////////////////
 
     function setPromiseFunction(fn, thisArg) {
-
-      return function() {
+      return function () {
         var args = slice.call(arguments);
 
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
           args.push(callback);
 
           fn.apply(thisArg, args);
@@ -83,9 +84,7 @@
             }
           }
         });
-
       };
-
     }
 
     function fillProperties(source, target) {
@@ -99,15 +98,15 @@
           // if no one was actually invoking that method.
           try {
             val = source[key];
-          } catch(err) {
-           continue;
+          } catch (err) {
+            continue;
           }
           var type = typeof val;
 
-          if (type === 'object' && !(val instanceof ChromePromise)) {
+          if (type === "object" && !(val instanceof ChromePromise)) {
             target[key] = {};
             fillProperties(val, target[key]);
-          } else if (type === 'function') {
+          } else if (type === "function") {
             target[key] = setPromiseFunction(val, source);
           } else {
             target[key] = val;
@@ -119,7 +118,7 @@
     function permissionsAddedListener(perms) {
       if (perms.permissions && perms.permissions.length) {
         var approvedPerms = {};
-        perms.permissions.forEach(function(permission) {
+        perms.permissions.forEach(function (permission) {
           var api = /^[^.]+/.exec(permission);
           if (api in chrome) {
             approvedPerms[api] = chrome[api];
@@ -130,3 +129,5 @@
     }
   }
 }));
+
+export default ChromePromise;

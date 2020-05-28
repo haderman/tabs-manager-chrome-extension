@@ -1,5 +1,5 @@
 // EXAMPLE of use:
-
+//
 // logger
 //   .group(logger.templates.compose(
 //     logger.templates.colorText('Test 1'),
@@ -12,16 +12,16 @@
 //   .groupEnd();
 
 function createLogger() {
-  const toArgs = msg => Array.isArray(msg) ? msg : [msg];
+  const toArgs = (msg) => Array.isArray(msg) ? msg : [msg];
 
   const chipTemplate = (text, options = {}) => {
-    const { background = 'black', color = 'white'} = options;
+    const { background = "black", color = "white" } = options;
     const style = [
       `color: ${color}`,
       `background: ${background}`,
-      'padding: 3px',
-      'border-radius: 4px'
-    ].join(';');
+      "padding: 3px",
+      "border-radius: 4px",
+    ].join(";");
     return [`%c${text}`, style];
   };
 
@@ -32,9 +32,9 @@ function createLogger() {
     },
     time(template = chipTemplate) {
       const d = new Date();
-      const time = [d.getHours(), d.getMinutes(), d.getSeconds()].join(':');
+      const time = [d.getHours(), d.getMinutes(), d.getSeconds()].join(":");
       const txt = `⏱ ${time}`;
-      const msg = typeof template === 'function' ? template(txt) : txt;
+      const msg = typeof template === "function" ? template(txt) : txt;
       console.log(...toArgs(msg));
       return createLogger();
     },
@@ -49,28 +49,30 @@ function createLogger() {
     templates: {
       chip: chipTemplate,
       compose(...msgs) {
-        const getTexts = msg => msg[0];
+        const getTexts = (msg) => msg[0];
         const getStyles = ([, ...styles]) => styles;
-        const text = msgs.map(getTexts).flat().join('');
+        const text = msgs.map(getTexts).flat().join("");
         const styles = msgs.map(getStyles).flat();
         return [text, ...styles];
       },
-      colorText(text, color = 'orange') {
+      colorText(text, color = "orange") {
         const style = `color: ${color};`;
         return [`%c${text}`, style];
       },
       changed(oldText, newText) {
-        const newTexStylet = ['color: white'].join(';');
+        const newTexStylet = ["color: white"].join(";");
         const oldTextStyle = [
-          'color: #7f8c8d',
-          'text-decoration: line-through',
-          'text-decoration-color: #95a5a6'
-        ].join(';');
+          "color: #7f8c8d",
+          "text-decoration: line-through",
+          "text-decoration-color: #95a5a6",
+        ].join(";");
         return [`%c${oldText}%c ${newText}`, oldTextStyle, newTexStylet];
       },
       separator(str) {
-        return [`%c${str}`, ''];
-      }
-    }
+        return [`%c${str}`, ""];
+      },
+    },
   };
 }
+
+export default createLogger;

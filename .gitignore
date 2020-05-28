@@ -1,2 +1,8 @@
-popup/popup.js
-newtab/newtab.js
+# bundles
+background.bundle.js
+src/popup/popup.bundle.js
+src/newtab/newtab.bundle.js
+
+src/elm/elm-stuff
+
+dist

@@ -21,6 +21,8 @@ cd ../..
 cp -r assets dist
 cp -r src/styles dist/src
 
+# Make background bundle and copy it into dist folder
+deno bundle src/background/index.js background.bundle.js
 cp background.bundle.js manifest.json dist
 
 

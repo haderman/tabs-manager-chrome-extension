@@ -35,7 +35,7 @@ main =
 
 
 type alias Flags =
-    ()
+    Decode.Value
 
 
 type CardStatus
@@ -48,13 +48,12 @@ type Status
     | Idle
     | NoData
     | WorkspaceInUse Workspace.Id
-    | OpeningWorkspace Workspace.Id
     | DeletingWorkspace Workspace.Id
 
 
 type alias Data =
     { workspacesIds : List Workspace.Id
-    , state : Status
+    , status : Status
     , workspacesInfo : Dict Workspace.Id Workspace
     , numTabsInUse : Int
     , theme : Theme
@@ -69,25 +68,40 @@ type alias Model =
     }
 
 
-
-initModel : Model
-initModel =
-    { data =
-        { workspacesIds = []
-        , state = NoInitiated
-        , workspacesInfo = Dict.empty
-        , numTabsInUse = 0
-        , theme = Theme.default
-        }
-    , cards = []
+defaultData : Data
+defaultData =
+    { workspacesIds = []
     , status = NoInitiated
+    , workspacesInfo = Dict.empty
+    , numTabsInUse = 0
+    , theme = Theme.default
+    }
+
+
+initModel : Data -> Model
+initModel data =
+    { data = data
+    , status = data.status
+    , cards = List.map (\workspaceId -> ( workspaceId, Showing )) data.workspacesIds
     , error = ""
     }
 
 
 init : Flags -> ( Model, Cmd Msg )
-init _ =
-    ( initModel, Cmd.none )
+init flags =
+    case Decode.decodeValue dataDecoder flags of
+        Ok data ->
+            ( initModel data, Cmd.none )
+
+        Err err ->
+            ( initModel defaultData
+                |>
+                    (\model ->
+                        { model |
+                            error = Debug.toString err
+                        }
+                    )
+            , Cmd.none )
 
 
 
@@ -118,7 +132,7 @@ update msg model =
             ( { model
                 | data = data
                 , cards = List.map (\workspaceId -> ( workspaceId, Showing )) data.workspacesIds
-                , status = data.state
+                , status = data.status
               }
             , Cmd.none
             )
@@ -161,7 +175,7 @@ update msg model =
             ( model, Ports.deleteWorkspace workspaceId )
 
         PressedCancelDeletionButton ->
-            ( { model | status = model.data.state }, Cmd.none )
+            ( { model | status = model.data.status }, Cmd.none )
 
         ChangeField workspaceId setter value ->
             ( { model
@@ -241,6 +255,11 @@ view model =
 
             NoData ->
                 [ viewListWokspaceEmptyState
+                ]
+
+            NoInitiated ->
+                [ h3 [ class "text-primary" ]
+                    [ text "Loading..." ]
                 ]
 
             _ ->
@@ -359,7 +378,7 @@ viewHeader model =
                 , "gutter-bottom-xl"
                 ]
     in
-    case model.data.state of
+    case model.data.status of
         WorkspaceInUse id ->
             case Dict.get id model.data.workspacesInfo of
                 Just {name, color} ->
@@ -670,8 +689,22 @@ dataDecoder =
             (Decode.field "workspaces" (Decode.list Decode.int))
             (Decode.field "status" stateDecoder)
             (Decode.field "workspacesInfo" workspacesInfoDecoder)
-            (Decode.field "numTabs" Decode.int)
-            (Decode.field "settings" Theme.decoder) -- This will be decode settings in the future
+            (Decode.field "numTabs" decodeNumTabs)
+            (Decode.field "settings" Theme.decoder)
+
+
+decodeNumTabs : Decoder Int
+decodeNumTabs =
+    Decode.maybe Decode.int
+        |> Decode.andThen
+            (\maybeNumTabs ->
+                case maybeNumTabs of
+                    Just numTabs ->
+                        Decode.succeed numTabs
+
+                    Nothing ->
+                        Decode.succeed 0
+            )
 
 
 workspacesInfoDecoder : Decoder (Dict Workspace.Id Workspace)
@@ -703,10 +736,6 @@ stateDecoder =
                 case state of
                     "workspaceInUse" ->
                         Decode.map WorkspaceInUse <|
-                            Decode.field "workspaceInUse" Decode.int
-
-                    "openingWorkspace" ->
-                        Decode.map OpeningWorkspace <|
                             Decode.field "workspaceInUse" Decode.int
 
                     "noData" ->

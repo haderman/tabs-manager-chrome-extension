@@ -281,8 +281,8 @@ input[type=text] {
 
 body.popup .root {
   width: var(--view-width);
-  min-height: 360px;
-  max-height: 380px;
+  height: 385px;
+  max-height: 385px;
   overflow: auto;
   margin: auto;
   background-color: var(--color-deep-0);

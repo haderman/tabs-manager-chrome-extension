@@ -337,8 +337,18 @@ function handleOnMessages(request, sender, sendResponse) {
   const { type, payload, window } = request;
   logMessage(type, payload, window);
 
-  if (type === "popup_opened" || type === "newtab_opened") {
-    broadcast(model);
+  if (type === "popup_opened") {
+    chrome.extension.sendMessage({
+      type: "INIT_POPUP",
+      payload: model,
+    });
+  }
+
+  if (type === "newtab_opened") {
+    chrome.extension.sendMessage({
+      type: "INIT_NEWTAB",
+      payload: model,
+    });
   }
 
   if (type === "open_chrome_page") {

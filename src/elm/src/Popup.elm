@@ -49,7 +49,7 @@ subscriptions _ =
 
 
 type alias Flags =
-    ()
+    Decode.Value
 
 
 type Key
@@ -102,28 +102,46 @@ type alias Model =
     , focusStatus : FocusStatus
     , colorList : List MyColor.MyColor
     , formStatus : FormStatus
+    , error : String
     }
 
 
-initModel : Model
-initModel =
-    { data =
-        { workspacesIds = []
-        , workspacesInfo = Dict.empty
-        , status = NoInitiated
-        , numTabsInUse = 0
-        , theme = Theme.default
-        }
+defaultData : Data
+defaultData =
+    { workspacesIds = []
     , status = NoInitiated
+    , workspacesInfo = Dict.empty
+    , numTabsInUse = 0
+    , theme = Theme.default
+    }
+
+
+initModel : Data -> Model
+initModel data =
+    { data = data
+    , status = data.status
     , focusStatus = NoneFocus
     , colorList = MyColor.list
     , formStatus = Empty
+    , error = ""
     }
 
 
 init : Flags -> ( Model, Cmd Msg )
-init _ =
-    ( initModel, Cmd.none )
+init flags =
+    case Decode.decodeValue dataDecoder flags of
+        Ok data ->
+            ( initModel data, Cmd.none )
+
+        Err err ->
+            ( initModel defaultData
+                |>
+                    (\model ->
+                        { model |
+                            error = Debug.toString err
+                        }
+                    )
+            , Cmd.none )
 
 
 
@@ -439,7 +457,7 @@ viewHeader theme =
         settingsLink =
             a
                 [ target "_blank"
-                , href "/newtab/newtab.html"
+                , href "/src/newtab/newtab.html"
                 , tabindex 1
                 , onFocus <| ElementFocused SettingsLinkFocused
                 , onBlur ElementBlurred

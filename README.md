@@ -1,5 +1,6 @@
 
 
+
 # Woki
 <p>
   <a href="https://github.com/haderman/woki-extension/blob/master/LICENSE">
@@ -22,9 +23,24 @@ Esta extensión permite hasta ahora:
 
 
 # Tabla de contenido
+1. [Uso](#use)
 1. [Build](#build)   
 2. [Dev](#dev)
 3. [Licencia](#licence) 
+
+
+<a name="use"></a> 
+# Uso
+
+### Cómo crear un nuevo workspace
+<div>
+  <img src="https://github.com/haderman/woki-extension/blob/master/docs/how_to_create.gif" alt="How to create a workspace" width="400"/>
+</div>
+
+### Cómo cambiar entre diferentes workspaces
+<div>
+  <img src="https://github.com/haderman/woki-extension/blob/master/docs/how_to_use.gif" alt="How to shift between workspaces" width="600" />
+</div>
 
 
 <a name="build"></a> 
@@ -34,6 +50,7 @@ Tener en cuenta que esta applicación usa [Deno](https://deno.land). Dicho esto,
     sh build.sh
 
 Este comando crea la carpeta `dist` que se puede cargar en el navegador como una extensión sin empaquetar
+
 
 <a name="dev"></a> 
 # Dev
@@ -48,6 +65,7 @@ El script [dev.sh](https://github.com/haderman/woki-extension/blob/master/dev.sh
 sh dev.sh newtab|popup|background
 ```
 Dependiendo el párametro se observan los cambios en los archivos y se crea los bundles
+
 
 <a name="licence"></a> 
 # Licencia
